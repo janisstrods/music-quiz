@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A party game for two or three teams: hear a song, place it on your timeline.">
+<title>When's that tune?</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">🕰 <span>When's&nbsp;that&nbsp;tune?</span></div>
+</header>
+
+<section id="screen-teams" class="screen active">
+  <h1>Two or three teams</h1>
+  <p class="subtitle">Hear a song, place it on your timeline. First team to fill their timeline wins. Leave Team 3 empty for a two-team game.</p>
+  <div class="setup-form">
+    <label class="setup-row"><span>🅰</span><input id="team-0" type="text" maxlength="16" placeholder="Team 1" autocomplete="off"></label>
+    <label class="setup-row"><span>🅱</span><input id="team-1" type="text" maxlength="16" placeholder="Team 2" autocomplete="off"></label>
+    <label class="setup-row"><span>🅲</span><input id="team-2" type="text" maxlength="16" placeholder="Team 3 (optional)" autocomplete="off"></label>
+    <label class="setting">
+      <span>Cards to win</span>
+      <select id="set-target">
+        <option value="10">10 (quick)</option>
+        <option value="15">15</option>
+        <option value="20" selected>20 (standard)</option>
+        <option value="25">25 (long haul)</option>
+      </select>
+    </label>
+    <div class="setup-buttons">
+      <button id="btn-teams-start" class="primary-btn">Start game ▸</button>
+    </div>
+  </div>
+  <details class="rules">
+    <summary>How it works</summary>
+    <ul>
+      <li>The active team hears a song and drops it into a gap in <i>their</i> timeline.</li>
+      <li>Right → the card joins their timeline. Wrong → nobody gets it.</li>
+      <li>🎟 <b>Tokens</b>: each team starts with 2. Spend one to <b>skip</b> a song and get a different one (it's still your turn), or to <b>challenge</b> another team's placement — a correct challenge steals the card.</li>
+      <li>On your turn, trade <b>🎟 3</b> for a <b>free card</b>: it goes straight into your timeline, no guessing — and you still play your song.</li>
+      <li>Name both the title <i>and</i> the artist out loud to earn a token back.</li>
+    </ul>
+  </details>
+  <p class="hint centered credit">
+    Songs play as official 30-second preview clips from
+    <a href="https://music.apple.com" target="_blank" rel="noopener">Apple Music</a>
+    — every reveal links to the full track. All music belongs to its rights holders.
+  </p>
+</section>
+
+<section id="screen-loading" class="screen">
+  <div class="loader-disc"></div>
+  <p id="loading-text">Dropping the needle…</p>
+</section>
+
+<section id="screen-when" class="screen">
+  <div class="game-top">
+    <button id="btn-hit-quit" class="ghost-btn">← Quit</button>
+    <span class="badge">🕰 When's that tune?</span>
+    <span id="hit-target" class="round-chip"></span>
+  </div>
+
+  <div id="hit-teams" class="team-strip"></div>
+
+  <div class="stage stage-compact">
+    <div class="stage-play">
+      <div class="disc">
+        <div class="disc-label">?</div>
+      </div>
+      <div class="equalizer paused">
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+    </div>
+    <button id="btn-hit-playgate" class="primary-btn hidden">▶ Play snippet</button>
+  </div>
+
+  <p id="hit-prompt" class="hit-prompt"></p>
+  <div id="hit-timeline" class="timeline"></div>
+
+  <div class="guess-buttons">
+    <button id="btn-hit-confirm" class="primary-btn" disabled>Lock it in ▸</button>
+    <button id="btn-hit-replay" class="ghost-btn">🔁 Replay <kbd>space</kbd></button>
+    <button id="btn-hit-skip" class="ghost-btn">⏭ Skip song (🎟 1)</button>
+    <button id="btn-hit-buy" class="ghost-btn" title="Deal a card face up straight into your timeline — you still play this song">🃏 Buy a card (🎟 3)</button>
+  </div>
+
+  <div class="volume-row">
+    🔉 <input id="hit-volume" type="range" min="0" max="100" value="80">
+  </div>
+
+  <!-- challenge prompt -->
+  <div id="hit-challenge" class="reveal hidden">
+    <div class="reveal-card narrow">
+      <div class="reveal-info">
+        <h2 id="challenge-title">Challenge?</h2>
+        <p id="challenge-text" class="hint"></p>
+        <div id="challenge-timeline" class="timeline mini"></div>
+        <div id="challenge-tokens" class="token-row"></div>
+        <div class="setup-buttons">
+          <span id="challenge-rivals" class="challenge-rivals"></span>
+          <button id="btn-challenge-no" class="ghost-btn">Let it stand</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- reveal -->
+  <div id="hit-reveal" class="reveal hidden">
+    <div class="reveal-card">
+      <img id="hit-art" alt="Album artwork">
+      <div class="reveal-info">
+        <p class="reveal-was">It was…</p>
+        <h2 id="hit-year" class="year-big"></h2>
+        <h3 id="hit-song"></h3>
+        <a id="hit-am-link" class="am-link" target="_blank" rel="noopener">Listen on Apple Music ↗</a>
+        <p id="hit-verdict" class="hit-verdict"></p>
+        <div id="hit-bonus" class="bonus-row">
+          <span id="hit-bonus-q"></span>
+          <button id="btn-bonus-yes" class="chip-btn">Yes 🎟 +1</button>
+          <button id="btn-bonus-no" class="chip-btn">No</button>
+        </div>
+        <div class="setup-buttons">
+          <button id="btn-hit-next" class="primary-btn">Next team ▸</button>
+          <button id="btn-hit-buy-reveal" class="ghost-btn hidden">🃏 Buy a card (🎟 3)</button>
+        </div>
+        <div id="hit-reveal-tokens" class="token-row"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="screen-when-results" class="screen">
+  <h1 id="hit-winner">🏆</h1>
+  <div id="hit-final"></div>
+  <div class="results-buttons">
+    <button id="btn-hit-again" class="primary-btn">Rematch</button>
+    <button id="btn-hit-home" class="ghost-btn">Back to menu</button>
+  </div>
+</section>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="ui.js"></script>
+<script src="timeline.js"></script>
+<script src="audio.js"></script>
+<script src="when.js"></script>
+<script src="site.js"></script>
+</body>
+</html>
