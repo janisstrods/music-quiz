@@ -4,16 +4,18 @@
  *
  *   await MQ.audio.play(round, { limitSeconds: 20 })  // -> 'playing'|'blocked'|'stale'
  *   MQ.audio.pause() / .stop()
+ *   MQ.audio.progress()   // -> { current, duration, playing, ended }, read-only
  */
 (function () {
   'use strict';
   const MQ = (window.MQ = window.MQ || {});
-  const { playingVisual } = MQ.ui;
+  const { playingVisual, store } = MQ.ui;
 
   const el = new Audio();
   el.preload = 'auto';
 
-  let volume = parseFloat(localStorage.getItem('mq_volume') || '0.8');
+  const saved = parseFloat(store.get('mq_volume', '0.8'));
+  let volume = saved >= 0 && saved <= 1 ? saved : 0.8;
   let stopHandle = null;
   let gen = 0;              // bumped on every stop — stale async callbacks bail
   const errorCbs = [];      // each mode subscribes; only the active one reacts
@@ -23,7 +25,7 @@
   function setVolume(v) {
     volume = v;
     el.volume = v;
-    localStorage.setItem('mq_volume', String(v));
+    store.set('mq_volume', String(v));
   }
 
   function stop() {
@@ -74,13 +76,25 @@
     if (el.getAttribute('src')) errorCbs.forEach(cb => cb());
   });
 
+  // Where the clip is, for a progress ring. Read-only: nothing here counts
+  // down or cuts the song short.
+  function progress() {
+    const d = el.duration;
+    return {
+      current: el.currentTime || 0,
+      duration: Number.isFinite(d) ? d : 0,
+      playing: !!el.getAttribute('src') && !el.paused && !el.ended,
+      ended: !!el.getAttribute('src') && el.ended
+    };
+  }
+
   // Apple's preview terms ask for a link back to the track on Apple Music.
   function appleMusicUrl(round) {
     return round && round.trackId ? `https://music.apple.com/song/${round.trackId}` : '';
   }
 
   MQ.audio = {
-    play, pause, stop, setVolume, appleMusicUrl,
+    play, pause, stop, setVolume, appleMusicUrl, progress,
     get volume() { return volume; },
     onError(cb) { errorCbs.push(cb); }
   };

@@ -12,6 +12,14 @@
   --accent2: #8a5cff;
   --good: #2fd977;
   --bad: #ff5c5c;
+  --gold: #ffe08a;
+  /* Each team keeps one colour all game, clear of the pink, gold, green and
+     red that already mean something. */
+  --team-0: #3fd0f5;
+  --team-1: #ff9d45;
+  --team-2: #b58bff;
+  /* Empty-gap outlines: at least 3:1 against the background (ACCESS-11). */
+  --gap-line: rgba(255, 255, 255, 0.42);
 }
 
 html, body { height: 100%; }
@@ -204,6 +212,11 @@ h1 { font-size: 40px; font-weight: 800; margin: 18px 0 8px; text-align: center; 
   position: absolute; right: -34px; top: -4px;
   font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums;
 }
+/* Where the bar runs nearly edge to edge, the seconds hanging off its end
+   would push the page sideways: they sit above the bar's end instead. */
+@media (max-width: 640px) {
+  .timer-num { right: 0; top: -22px; }
+}
 
 /* ---------- guessing ---------- */
 .guess-area { width: 100%; max-width: 560px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
@@ -267,7 +280,8 @@ kbd {
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
 }
-.ghost-btn:hover { color: var(--text); border-color: var(--accent2); }
+.ghost-btn:hover:not(:disabled) { color: var(--text); border-color: var(--accent2); }
+.ghost-btn:disabled { opacity: 0.4; cursor: default; }
 
 .volume-row {
   margin-top: 26px;
@@ -302,7 +316,7 @@ input[type="range"] { accent-color: var(--accent); width: 160px; }
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
 }
 @keyframes pop { from { transform: scale(0.92); opacity: 0; } }
-#reveal-art, #hit-art {
+#reveal-art {
   flex: 0 0 auto;
   width: 200px; height: 200px;
   border-radius: 16px;
@@ -385,9 +399,22 @@ input[type="range"] { accent-color: var(--accent); width: 160px; }
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   animation: pop 0.2s ease-out;
   max-width: 90vw;
+  pointer-events: none;   /* never swallow a tap meant for the buttons under it */
 }
 
 .hidden { display: none !important; }
+
+/* Read by screen readers, not shown. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* A focus ring you can see from the sofa, for keyboard users only. */
+:where(button, a[href], summary, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
 
 /* ---------- mode chooser ---------- */
 .mode-grid {
@@ -430,14 +457,52 @@ input[type="range"] { accent-color: var(--accent); width: 160px; }
 }
 .setup-row input::placeholder { color: #6f6a8a; }
 .setup-buttons { display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap; justify-content: center; }
-.challenge-rivals { display: contents; }
 
-.rules {
-  margin-top: 28px; max-width: 520px;
-  color: var(--muted); font-size: 13.5px; line-height: 1.6;
+/* When's that tune? setup: the form beside a four-line "How to play" that
+   the room can read from the sofa before anyone presses Start (ARC-9). On a
+   phone it follows the form, so Start stays on the first screen. */
+#screen-teams h1 { font-size: clamp(30px, 1.2vw + 24px, 52px); line-height: 1.15; }
+.teams-layout {
+  width: 100%;
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start;
+  gap: clamp(20px, 3vw, 56px);
 }
-.rules summary { cursor: pointer; color: var(--accent2); font-size: 14px; }
-.rules ul { margin: 12px 0 0 20px; display: flex; flex-direction: column; gap: 6px; }
+#screen-teams .setup-form { flex: 0 1 440px; max-width: 440px; }
+.team-row .team-num {
+  flex: 0 0 auto;
+  width: 28px; height: 28px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 800; color: #120c1f;
+  background: var(--tc, var(--team-0));
+}
+/* Each team keeps this colour in the game: tile edge, bar, banner. */
+.team-row.t1 { --tc: var(--team-1); }
+.team-row.t2 { --tc: var(--team-2); }
+.team-row:focus-within { border-color: var(--tc, var(--team-0)); }
+#screen-teams .setup-row input { font-size: clamp(17px, 0.3vw + 13px, 20px); }
+
+.how-to {
+  flex: 1 1 420px; max-width: 560px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: clamp(16px, 1.4vw + 6px, 26px);
+  font-size: clamp(15px, 0.35vw + 11px, 19px);
+  line-height: 1.5;
+}
+.how-to h2 { font-size: 1.2em; font-weight: 800; margin-bottom: 0.6em; }
+.how-steps { list-style: none; display: flex; flex-direction: column; gap: 0.7em; }
+.how-steps li { display: flex; gap: 0.7em; align-items: flex-start; }
+.how-ico {
+  flex: 0 0 auto;
+  width: 2em; height: 2em; border-radius: 0.6em;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.07);
+}
+.how-steps p { color: #ddd8ee; padding-top: 0.2em; }
+.how-steps b { color: var(--text); }
+#how-target { color: var(--gold); }
+.how-rules { margin-top: 1em; color: var(--text); font-size: 0.9em; }
 
 /* ---------- quiz scoring ---------- */
 .score-strip { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
@@ -473,36 +538,9 @@ input[type="range"] { accent-color: var(--accent); width: 160px; }
 .lb-detail { color: var(--muted); font-size: 13px; }
 .lb-score { font-weight: 800; color: #ffe08a; width: 74px; text-align: right; }
 
-/* ---------- when's that tune? ---------- */
-.stage-compact { min-height: 120px; }
-.stage-compact .disc { width: 92px; height: 92px; }
-.stage-compact .disc-label { width: 34px; height: 34px; font-size: 16px; }
-.stage-compact .equalizer { height: 48px; }
-
-.team-strip { display: flex; gap: 12px; width: 100%; margin-bottom: 12px; flex-wrap: wrap; }
-.team-card {
-  flex: 1; min-width: 180px;
-  display: flex; align-items: center; gap: 10px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 12px 16px;
-  transition: border-color 0.15s, background 0.15s;
-}
-.team-card.active { border-color: var(--accent); background: rgba(255, 45, 120, 0.1); }
-.team-name { font-weight: 700; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.team-cards { font-size: 13px; color: var(--muted); }
-.team-tokens { font-size: 13px; color: #ffe08a; }
-
-.hit-prompt { text-align: center; margin: 14px 0 12px; font-size: 16px; }
-
-.timeline {
-  display: flex; align-items: stretch; gap: 6px;
-  width: 100%;
-  overflow-x: auto;
-  padding: 6px 2px 14px;
-  scrollbar-width: thin;
-}
+/* ---------- when's that tune? · gaps and cards ---------- */
+/* The base look of a gap and a year card. The board ("the timeline" below)
+   sizes them to the density it picks. */
 .slot {
   flex: 0 0 auto;
   min-width: 96px;
@@ -519,8 +557,6 @@ input[type="range"] { accent-color: var(--accent); width: 160px; }
 .slot:hover:not(:disabled) { border-color: var(--accent2); color: var(--text); background: var(--card); }
 .slot.selected { border-style: solid; border-color: var(--accent); background: rgba(255, 45, 120, 0.14); color: var(--text); }
 .slot:disabled { opacity: 0.28; cursor: default; }
-.slot-caret { font-size: 14px; }
-.slot-label { text-align: center; line-height: 1.3; }
 
 .year-card {
   flex: 0 0 auto;
@@ -531,7 +567,6 @@ input[type="range"] { accent-color: var(--accent); width: 160px; }
   padding: 10px;
   text-align: center;
 }
-.year-card.bought { border-color: #ffe08a; box-shadow: 0 0 0 2px rgba(255, 224, 138, 0.35); }
 .year-card img { width: 100%; aspect-ratio: 1; border-radius: 8px; object-fit: cover; background: #111; }
 .year-card b { display: block; font-size: 19px; margin: 6px 0 2px; color: #ffe08a; }
 .year-card span {
@@ -539,47 +574,10 @@ input[type="range"] { accent-color: var(--accent); width: 160px; }
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
 
-.reveal-card.narrow { max-width: 560px; text-align: center; }
-
 /* Same-year cards are one stack: joined edge to edge, no gap to drop into. */
 .year-stack { display: flex; flex: 0 0 auto; }
 .year-stack .year-card:not(:first-child) { border-top-left-radius: 0; border-bottom-left-radius: 0; border-left-style: dashed; }
 .year-stack .year-card:not(:last-child) { border-top-right-radius: 0; border-bottom-right-radius: 0; border-right: 0; }
-
-.slot.original, .slot.original:disabled {
-  opacity: 1; border-style: solid; border-color: var(--accent2);
-  background: rgba(0, 0, 0, 0.25); color: var(--text); font-weight: 600;
-}
-
-/* Challenge overlay: a small copy of the timeline under dispute. */
-.timeline.mini { margin: 4px 0 12px; padding-bottom: 8px; gap: 4px; }
-.timeline.mini .year-card { width: 70px; padding: 6px; border-radius: 10px; }
-.timeline.mini .year-card img { display: none; }
-.timeline.mini .year-card b { font-size: 15px; margin: 0 0 2px; }
-.timeline.mini .year-card span { font-size: 10px; }
-.timeline.mini .slot { min-width: 58px; padding: 6px 4px; font-size: 10.5px; cursor: default; }
-.timeline.mini .slot.open { border-color: var(--accent2); color: var(--text); }
-.timeline.mini .slot.original { min-width: 70px; }
-
-.token-row { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 14px; }
-#hit-reveal .token-row { justify-content: flex-start; }
-.token-chip {
-  font-size: 12.5px; color: var(--muted);
-  border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px;
-}
-.token-chip b { color: #ffe08a; font-weight: 600; }
-.token-chip.active { border-color: var(--accent); color: var(--text); }
-.token-chip.dim { opacity: 0.45; }
-.year-big { font-size: 52px; font-weight: 800; color: #ffe08a; line-height: 1; }
-#hit-song { font-size: 17px; margin: 8px 0 14px; font-weight: 600; }
-#hit-song small { color: var(--accent2); font-weight: 500; }
-.hit-verdict { font-size: 15px; line-height: 1.5; margin-bottom: 16px; }
-.bonus-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; font-size: 13.5px; color: var(--muted); }
-.bonus-row > span { width: 100%; }
-
-.final-team { width: 100%; max-width: 900px; margin-bottom: 26px; }
-.final-team h3 { font-size: 17px; margin-bottom: 10px; }
-.timeline.final { justify-content: flex-start; }
 
 @media (max-width: 620px) {
   .reveal-card { flex-direction: column; text-align: center; }
@@ -587,4 +585,1114 @@ input[type="range"] { accent-color: var(--accent); width: 160px; }
   h1 { font-size: 30px; }
   .buzz-btn { font-size: 19px; padding: 18px; }
 }
-#hit-reveal .setup-buttons { justify-content: flex-start; margin-top: 0; }
+
+/* ---------- when's that tune? · the board (the "Stage" layout) ---------- */
+/* Top to bottom: header (quit, scoreboard, tools), the hero turn line, the
+   timeline, and an action bar pinned to the bottom. The screen is exactly one
+   viewport tall; only the timeline area scrolls, and only downwards. */
+body:has(#screen-when.active) .topbar { display: none; }
+
+#screen-when {
+  max-width: none;
+  height: 100vh;
+  height: 100dvh;
+  padding: 0;
+  align-items: stretch;
+  overflow: hidden;
+  --pad-x: clamp(16px, 2.2vw, 44px);
+  /* Sofa-scale type: sized for the back of the room, growing on a TV. */
+  --fs-hero: clamp(24px, min(1.4vw + 16px, 3.2vh + 8px), 56px);
+  --fs-q: clamp(16px, min(0.62vw + 10px, 1.4vh + 7px), 30px);
+  --fs-count: clamp(22px, min(1.5vw + 7px, 3vh + 4px), 46px);
+}
+
+/* ---------- header ---------- */
+.wt-head {
+  flex: none;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "quit tiles tools";
+  align-items: center;
+  gap: 8px clamp(10px, 1.4vw, 28px);
+  padding: clamp(8px, 1.3vh, 18px) var(--pad-x) 0;
+}
+.wt-quit, .wt-rules { font-size: clamp(15px, 0.35vw + 10px, 22px); }
+.wt-quit { grid-area: quit; padding: 0.6em 0.9em; color: var(--text); }
+.wt-target { grid-area: target; display: none; text-align: center; color: var(--muted); font-size: 15px; white-space: nowrap; }
+.wt-target b { color: var(--text); }
+.wt-tools { grid-area: tools; display: flex; align-items: center; gap: 10px; }
+.wt-rules { padding: 0.5em 0.9em; border-radius: 999px; color: var(--text); font-weight: 600; white-space: nowrap; }
+.wt-tools .icon-btn { width: clamp(38px, 1.3vw + 22px, 52px); height: clamp(38px, 1.3vw + 22px, 52px); font-size: clamp(16px, 0.5vw + 10px, 24px); }
+.wt-volume { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+.wt-volume input[type="range"] { width: clamp(64px, 5.4vw, 120px); }
+
+.scoreboard { grid-area: tiles; display: flex; justify-content: center; gap: clamp(8px, 1vw, 18px); min-width: 0; }
+.tile {
+  --tc: var(--team-0);
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: clamp(250px, 23vw, 470px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "name badge" "count tokens" "bar bar";
+  align-items: center;
+  column-gap: 10px;
+  padding: clamp(6px, 0.9vh, 12px) clamp(12px, 1vw, 20px) clamp(8px, 1.1vh, 14px) clamp(20px, 1.5vw, 30px);
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.07);
+}
+.tile.t1 { --tc: var(--team-1); }
+.tile.t2 { --tc: var(--team-2); }
+/* The team's own colour runs down the left edge: a shape, not only a hue. */
+.tile::before {
+  content: ''; position: absolute; left: clamp(8px, 0.6vw, 12px); top: 12%; bottom: 12%;
+  width: 4px; border-radius: 3px; background: var(--tc);
+}
+.tile.up {
+  border-color: transparent;
+  background: linear-gradient(#2a1537, #2a1537) padding-box,
+              linear-gradient(90deg, var(--accent), var(--accent2)) border-box;
+  box-shadow: 0 0 26px rgba(255, 45, 120, 0.32);
+}
+.tile.defending { border-color: var(--accent2); }
+.tile.challenging { border-color: var(--gold); box-shadow: 0 0 22px rgba(255, 224, 138, 0.25); }
+.tile-name {
+  grid-area: name; font-weight: 800;
+  font-size: clamp(15px, min(0.8vw + 6px, 1.6vh + 4px), 28px);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tile-badge {
+  grid-area: badge; justify-self: end;
+  font-size: clamp(11px, 0.3vw + 8px, 16px); font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+}
+.tile-badge:empty { display: none; }
+.tile.up .tile-badge { background: linear-gradient(90deg, var(--accent), var(--accent2)); color: #fff; }
+.tile.defending .tile-badge { background: var(--accent2); color: #fff; }
+.tile.challenging .tile-badge { background: var(--gold); color: #2a1a05; }
+.tile-count { grid-area: count; white-space: nowrap; font-size: clamp(13px, 0.45vw + 8px, 20px); color: var(--text); }
+.tile-count b { font-size: var(--fs-count); font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; }
+.tile-count .of { font-weight: 700; margin: 0 4px 0 2px; }
+.tile-tokens { grid-area: tokens; justify-self: end; white-space: nowrap; font-size: clamp(13px, 0.45vw + 8px, 20px); display: flex; align-items: center; gap: 6px; }
+.tile-tokens .tk-num { display: none; font-weight: 800; }
+.tile-tokens .tk-none { color: var(--muted); }
+/* A narrow tile (a tablet, a landscape phone) keeps the numbers and drops the words. */
+.tile { container-type: inline-size; }
+@container (max-width: 210px) {
+  .tile-count .cg, .tile-count .word, .tile-tokens .tks, .tile-tokens .word, .tile-tokens .tk-none { display: none; }
+  .tile-tokens .tk-num { display: inline-flex; align-items: center; gap: 3px; }
+  .tile-count .of { margin-right: 0; }
+  /* The badge rides on the top edge, so "Defending" or "⚔ Challenging"
+     doesn't squeeze the team's name down to a letter. */
+  .tile-badge { grid-area: auto; position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%); font-size: 10px; padding: 1px 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4); }
+}
+.tile-bar { grid-area: bar; height: 6px; margin-top: clamp(4px, 0.7vh, 9px); border-radius: 3px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+.tile-bar i { display: block; height: 100%; border-radius: 3px; background: var(--tc); }
+
+/* Gold tickets for tokens, and a little gold-edged card for "cards". */
+.tk {
+  display: inline-block; width: 1.25em; height: 0.78em; flex: none;
+  background: linear-gradient(180deg, #ffe9a8, #f2c14e);
+  border-radius: 2px;
+  -webkit-mask: radial-gradient(circle at 0 50%, transparent 0.17em, #000 0.18em) left / 51% 100% no-repeat,
+                radial-gradient(circle at 100% 50%, transparent 0.17em, #000 0.18em) right / 51% 100% no-repeat;
+          mask: radial-gradient(circle at 0 50%, transparent 0.17em, #000 0.18em) left / 51% 100% no-repeat,
+                radial-gradient(circle at 100% 50%, transparent 0.17em, #000 0.18em) right / 51% 100% no-repeat;
+}
+.tks { display: inline-flex; gap: 3px; }
+.cg {
+  display: inline-block; width: 0.66em; height: 0.86em; vertical-align: -0.1em; margin: 0 0.3em 0 0.25em;
+  border: 1.5px solid var(--gold); border-radius: 3px;
+  background: linear-gradient(180deg, rgba(255, 224, 138, 0.2) 0 58%, var(--gold) 58% 74%, rgba(255, 224, 138, 0.2) 74%);
+}
+
+/* ---------- hero turn line ---------- */
+.wt-hero {
+  flex: none;
+  display: flex; align-items: center; justify-content: center;
+  --hero-gap: clamp(10px, 1.3vw, 28px);
+  gap: var(--hero-gap);
+  padding: clamp(6px, 1.6vh, 22px) var(--pad-x) 0;
+  --rec: clamp(60px, min(5.8vw, 10vh), 124px);
+}
+.wt-record { position: relative; flex: none; width: var(--rec); height: var(--rec); }
+.wt-ring { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.wt-ring circle { fill: none; stroke-width: 5; }
+.wt-ring-track { stroke: rgba(255, 255, 255, 0.1); }
+.wt-ring-fill { stroke: var(--accent); stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; }
+.wt-record .disc { position: absolute; inset: 11%; width: auto; height: auto; border-width: 2px; }
+.wt-record .disc-label { width: 34%; height: 34%; font-size: calc(var(--rec) * 0.16); }
+/* Autoplay blocked: the record itself is the play button (LOOP-11). */
+.wt-playgate {
+  position: absolute; inset: -6px; border-radius: 50%;
+  border: 3px solid #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff; font: inherit; font-weight: 800; font-size: calc(var(--rec) * 0.15); line-height: 1.1;
+  cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 6px rgba(255, 45, 120, 0.25), 0 10px 30px rgba(0, 0, 0, 0.5);
+  animation: gate-pulse 1.6s ease-in-out infinite;
+}
+.wt-playgate .wt-play-icon { font-size: 2em; line-height: 1; }
+@keyframes gate-pulse { 50% { box-shadow: 0 0 0 12px rgba(255, 45, 120, 0.12), 0 10px 30px rgba(0, 0, 0, 0.5); } }
+.wt-hero .equalizer { height: calc(var(--rec) * 0.46); gap: 4px; flex: none; }
+.wt-hero .equalizer span { width: calc(var(--rec) * 0.075); border-radius: 3px; }
+.wt-playstate { display: none; font-size: 14px; color: var(--muted); white-space: nowrap; }
+
+.wt-turn { min-width: 0; }
+.wt-who { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; }
+.wt-team {
+  font-size: var(--fs-hero); font-weight: 900; line-height: 1.12; letter-spacing: -0.01em;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  overflow-wrap: anywhere;
+}
+.wt-team.gold { background: none; color: var(--gold); }
+.wt-pill {
+  font-size: clamp(12px, min(0.5vw + 7px, 1.1vh + 5px), 21px); font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+  border: 2px solid rgba(255, 255, 255, 0.75); border-radius: 999px; padding: 2px 14px; white-space: nowrap;
+}
+.wt-pill.gold { border-color: var(--gold); color: var(--gold); }
+.wt-ask { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-top: clamp(4px, 0.8vh, 10px); }
+.wt-q { font-size: var(--fs-q); font-weight: 700; }
+.wt-q .q-short, .wt-bar .short { display: none; }
+.wt-q.gold { color: var(--gold); }
+/* One fixed width, whatever it says, so picking a gap never moves a thing. */
+.range-pill {
+  flex: none; display: inline-block; box-sizing: border-box; width: 8em;
+  font-size: var(--fs-q); font-weight: 800; text-align: center; font-variant-numeric: tabular-nums;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  padding: 2px 0.4em; border: 2px solid var(--accent); border-radius: 999px;
+  background: rgba(255, 45, 120, 0.16); color: #fff;
+}
+.range-pill.quiet { border-style: dashed; border-color: rgba(255, 255, 255, 0.35); background: transparent; color: var(--muted); font-weight: 600; }
+.range-pill.gold { border-color: var(--gold); background: rgba(255, 224, 138, 0.14); color: var(--gold); }
+.mic-chip {
+  flex: none; white-space: nowrap;
+  font-size: clamp(13px, min(0.4vw + 8.5px, 0.9vh + 6px), 20px); font-weight: 600;
+  padding: 4px 12px; border-radius: 999px;
+  border: 1px solid rgba(255, 224, 138, 0.35); background: rgba(255, 224, 138, 0.06); color: var(--muted);
+}
+.mic-chip.hot { color: var(--text); border-color: rgba(255, 224, 138, 0.7); background: rgba(255, 224, 138, 0.12); }
+
+/* ---------- the challenge band (phases ask and challenge) ---------- */
+/* Once a pick is locked in, the hero line gives way to a gold band: its own
+   beat on the main screen, at headline size (CHALLENGE-2), first the ask and
+   then the challenger's pick. The record stays; the line below stays full
+   size. Its slot row holds one slot per team, each placed under that team's
+   tile by alignBand() in when.js, so a rival's button is in the same place
+   every turn (CHALLENGE-7), and "Let it stand" sits under the tools. */
+.wt-hero.banded {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center;
+  column-gap: var(--hero-gap); row-gap: clamp(3px, 0.6vh, 10px);
+  margin-top: clamp(6px, 1.2vh, 16px);
+  padding: clamp(8px, 1.5vh, 22px) var(--pad-x);
+  background: linear-gradient(90deg, rgba(255, 224, 138, 0.1), rgba(255, 184, 56, 0.045) 50%, rgba(255, 224, 138, 0.1));
+  border-top: 1px solid rgba(255, 224, 138, 0.38);
+  border-bottom: 1px solid rgba(255, 224, 138, 0.38);
+}
+.wt-hero.banded > .equalizer, .wt-hero.banded > .wt-playstate, .wt-hero.banded > .wt-turn { display: none; }
+.wt-hero.banded > .wt-record { grid-column: 1; grid-row: 1 / span 3; }
+.wt-band { display: contents; }
+.band-title {
+  grid-column: 2; grid-row: 1;
+  font-size: var(--fs-hero); font-weight: 900; line-height: 1.25; letter-spacing: -0.01em; overflow-wrap: anywhere;
+}
+.band-title:focus { outline: none; }   /* a focus target for the keys, not a control */
+.band-title .gold { color: var(--gold); }
+/* The challenger's gap, named at headline size. One fixed width, so picking moves nothing. */
+.band-title .band-range { font-size: 0.84em; line-height: 1; width: 7.4em; margin-left: 0.2em; vertical-align: middle; padding: 0.07em 0.4em; letter-spacing: 0; }
+.band-text {
+  grid-column: 2; grid-row: 2;
+  font-size: clamp(15px, min(0.5vw + 10px, 1.2vh + 7px), 26px); line-height: 1.45; color: #ddd8ee;
+  min-height: 2.9em;   /* two lines in both beats, so the line below doesn't jump between them */
+}
+.band-text b { color: var(--text); }
+.band-text .band-nb { display: block; }
+.band-slots {
+  grid-column: 1 / -1; grid-row: 3;
+  display: flex; flex-wrap: wrap; align-items: stretch; row-gap: 10px;
+  margin-top: clamp(2px, 0.6vh, 10px);
+  --slot-h: clamp(58px, min(4.2vw + 14px, 9vh), 116px);
+}
+.band-slot {
+  --tc: var(--team-0);
+  position: relative; flex: 0 1 auto; min-width: 0; height: var(--slot-h);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(2px, 0.5vh, 8px);
+  padding: 4px 12px 4px clamp(20px, 1.5vw, 30px); border: 2px solid transparent; border-radius: 16px;
+  background: transparent; color: var(--text); text-align: center;
+  font: inherit; font-size: clamp(14px, min(0.55vw + 9.5px, 1.2vh + 7.5px), 26px); font-weight: 800; line-height: 1.2;
+}
+.band-slot.t1 { --tc: var(--team-1); }
+.band-slot.t2 { --tc: var(--team-2); }
+.band-slot.none { visibility: hidden; }
+/* The placing team's own slot: nothing to press. */
+.band-slot.placed { padding-left: 12px; border: 2px dashed rgba(255, 255, 255, 0.3); color: var(--muted); font-weight: 600; }
+.band-slot.placed b { color: var(--text); font-weight: 800; }
+.band-slot.placed > span { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+/* A rival's challenge button: gold, with the team's colour down its edge like its tile. */
+.band-slot.rival { cursor: pointer; border-color: var(--gold); background: rgba(22, 13, 36, 0.8); box-shadow: 0 0 22px rgba(255, 224, 138, 0.14); }
+.band-slot.rival::before {
+  content: ''; position: absolute; left: clamp(8px, 0.6vw, 12px); top: 16%; bottom: 16%;
+  width: 4px; border-radius: 3px; background: var(--tc);
+}
+.band-slot.rival:hover:not(:disabled) { background: rgba(255, 224, 138, 0.14); }
+/* A narrow slot says "⚔ Bass Face", not "⚔ Bass Face challen…". */
+.band-slot.rival { container-type: inline-size; }
+@container (max-width: 225px) { .bs-verb { display: none; } }
+.band-slot.rival:disabled { cursor: default; border-style: dashed; border-color: rgba(255, 255, 255, 0.28); background: transparent; box-shadow: none; color: var(--muted); }
+.band-slot.rival:disabled::before { opacity: 0.45; }
+.bs-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bs-meta { display: flex; align-items: center; gap: 8px; font-size: 0.92em; }
+.bs-meta .cost { background: rgba(255, 45, 120, 0.22); }
+.bs-why { font-weight: 600; }
+.band-slot kbd, .band-title kbd { font-size: 0.7em; }
+/* The common answer: solid and roomy (CHALLENGE-7). */
+.band-slot.stand {
+  flex-direction: row; gap: 0.5em; min-width: 9.5em; padding: 4px 16px; cursor: pointer;
+  border-color: rgba(255, 255, 255, 0.72); background: rgba(138, 92, 255, 0.2); font-size: clamp(15px, min(0.6vw + 10px, 1.3vh + 8px), 28px);
+}
+.band-slot.stand:hover { background: rgba(138, 92, 255, 0.34); }
+.band-slot.stand.wrap { flex: 1 1 100%; margin-left: 0; }
+/* The two picks, each under its own team's tile (ROOM-M2): the defender's
+   violet, the challenger's gold. */
+.band-slot.pick { font-weight: 600; gap: 0; padding-left: 12px; }
+.band-slot.pick > * { display: block; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.band-slot.pick b { font-size: 1.2em; font-weight: 900; font-variant-numeric: tabular-nums; }
+.band-slot.def { border-color: var(--accent2); background: rgba(138, 92, 255, 0.16); }
+.band-slot.chal { border-color: var(--gold); background: rgba(255, 224, 138, 0.1); }
+.band-slot.chal b { color: var(--gold); }
+.band-slot.chal b.quiet { color: var(--muted); font-weight: 600; }
+.band-long { display: inline; }
+
+/* ---------- the timeline ---------- */
+.wt-board {
+  flex: 1 1 auto; min-height: 0;
+  display: flex; flex-direction: column;
+  overflow-y: auto; overflow-x: auto;
+  padding: clamp(6px, 1.2vh, 16px) var(--pad-x);
+  overscroll-behavior: contain;
+}
+.wt-board-inner { margin: auto 0; }
+.tl-caption {
+  text-align: center; text-transform: uppercase; letter-spacing: 0.12em;
+  font-size: clamp(12px, min(0.36vw + 8px, 0.8vh + 6px), 18px); color: var(--muted);
+  margin-bottom: clamp(4px, 0.8vh, 12px);
+}
+.tl-caption b { color: var(--text); font-weight: 800; }
+
+/* Density is picked by layoutTimeline() from what fits: large → full →
+   compact → tiny. --tu is one timeline unit, ~1px on a laptop, more on a TV. */
+#hit-timeline {
+  --tu: clamp(0.8px, min(0.04vw + 0.5px, 0.1vh + 0.2px), 1.6px);
+  /* (--ch never under 148px: at the smallest unit a two-line title would be cut;
+     never under --fit, the card's padding, art, year and title lines, so a
+     title is never cut through its letters, V6) */
+  --fit: calc(var(--tu) * 24 + 3px + var(--art) + var(--fy) * 1.1 + var(--ft) * 1.3 * var(--lines));
+  --cw: calc(var(--tu) * 112); --ch: max(148px, calc(var(--tu) * 176), var(--fit)); --gw: calc(var(--tu) * 44);
+  --art: calc(var(--tu) * 90); --fy: calc(var(--tu) * 23); --ft: max(12px, calc(var(--tu) * 13)); --lines: 2;
+  --cg: calc(var(--tu) * 8); --rg: calc(var(--tu) * 14); --cont: calc(var(--tu) * 26);
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--rg);
+  width: max-content; margin: 0 auto;
+  padding: 12px var(--cont) 4px;
+}
+#hit-timeline[data-density="large"] {
+  --cw: calc(var(--tu) * 150); --ch: max(calc(var(--tu) * 232), var(--fit)); --gw: calc(var(--tu) * 50);
+  --art: calc(var(--tu) * 128); --fy: calc(var(--tu) * 31); --ft: max(13px, calc(var(--tu) * 15));
+}
+#hit-timeline[data-density="compact"] {
+  /* (never under 100px: at the smallest unit the title would spill out of the card) */
+  --cw: calc(var(--tu) * 100); --ch: max(100px, calc(var(--tu) * 118), var(--fit)); --gw: calc(var(--tu) * 42);
+  --art: calc(var(--tu) * 50); --fy: calc(var(--tu) * 22); --ft: max(12px, calc(var(--tu) * 12.5)); --lines: 1;
+}
+#hit-timeline[data-density="tiny"] {
+  --cw: max(86px, calc(var(--tu) * 108)); --ch: max(52px, calc(var(--tu) * 66)); --gw: calc(var(--tu) * 42);
+  --art: 0px; --fy: max(18px, calc(var(--tu) * 23)); --ft: max(12px, calc(var(--tu) * 13)); --lines: 1;
+  --rg: calc(var(--tu) * 12);
+}
+.tl-row { position: relative; display: flex; align-items: stretch; gap: var(--cg); height: var(--ch); }
+/* This row's last gap carries on at the start of the next row. */
+.tl-cont {
+  position: absolute; left: 100%; top: 50%; transform: translateY(-50%);
+  margin-left: calc(var(--cont) * 0.2); color: var(--muted); font-size: calc(var(--cont) * 0.8); line-height: 1;
+}
+
+#hit-timeline .year-card {
+  position: relative; flex: none;
+  width: var(--cw); height: var(--ch);
+  padding: calc(var(--tu) * 8) calc(var(--tu) * 6);
+  display: flex; flex-direction: column; align-items: center;
+  border-radius: calc(var(--tu) * 14);
+  background: rgba(255, 255, 255, 0.075); border: 1px solid rgba(255, 255, 255, 0.18);
+}
+#hit-timeline .year-card img { width: var(--art); height: var(--art); flex: none; border-radius: calc(var(--tu) * 8); }
+#hit-timeline .year-card b { font-size: var(--fy); line-height: 1.1; margin: calc(var(--tu) * 6) 0 calc(var(--tu) * 2); font-variant-numeric: tabular-nums; }
+/* (flex: none: a squeezed title would be cut through its letters, V6.) */
+#hit-timeline .year-card span { flex: none; font-size: var(--ft); color: #d9d4ea; -webkit-line-clamp: var(--lines); max-width: 100%; }
+#hit-timeline[data-density="compact"] .year-card span,
+#hit-timeline[data-density="tiny"] .year-card span { display: block; white-space: nowrap; text-overflow: ellipsis; }
+#hit-timeline[data-density="tiny"] .year-card { justify-content: center; padding-top: 0; padding-bottom: 0; }
+#hit-timeline[data-density="tiny"] .year-card img { display: none; }
+#hit-timeline[data-density="tiny"] .year-card b { margin: 0; }
+#hit-timeline .year-stack .year-card:not(:first-child) { border-left: 1px dashed rgba(255, 255, 255, 0.25); }
+/* The two cards either side of the chosen gap are ringed. A ring, not a
+   border: nothing changes size. */
+#hit-timeline .year-card.nb { box-shadow: 0 0 0 3px var(--accent), 0 0 18px rgba(255, 45, 120, 0.35); z-index: 1; }
+#hit-timeline[data-phase="challenge"] .year-card.nb { box-shadow: 0 0 0 3px var(--gold), 0 0 18px rgba(255, 224, 138, 0.3); }
+#hit-timeline .year-card.bought { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(255, 224, 138, 0.55), 0 0 22px rgba(255, 224, 138, 0.3); }
+#hit-timeline .year-card.bought::before {
+  content: '\1F39F\FE0F  BOUGHT'; position: absolute; left: 50%; top: 0; transform: translate(-50%, -55%);
+  padding: 1px 8px; border-radius: 999px; white-space: nowrap;
+  background: var(--gold); color: #2a1a05; font-size: max(11px, calc(var(--tu) * 11)); font-weight: 800; letter-spacing: 0.06em;
+}
+
+/* Gaps: one fixed width that never changes. The chosen one is filled pink
+   with a "?"; hover is weaker and never outranks it (LOOP-M1). */
+#hit-timeline .slot {
+  flex: none; width: var(--gw); min-width: 0; height: auto; padding: 0;
+  border: 2px dashed var(--gap-line); border-radius: calc(var(--tu) * 12);
+  background: transparent; color: #cfc9e2;
+  display: flex; align-items: center; justify-content: center;
+}
+#hit-timeline .slot-mark { display: grid; place-items: center; }
+#hit-timeline .slot-mark > * { grid-area: 1 / 1; }
+#hit-timeline .slot-plus { font-size: calc(var(--gw) * 0.5); font-weight: 300; line-height: 1; }
+#hit-timeline .slot-q {
+  display: flex; visibility: hidden; width: calc(var(--gw) * 0.7); height: calc(var(--gw) * 0.7); max-width: 44px; max-height: 44px;
+  border-radius: 50%; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--accent), var(--accent2)); border: 2px solid rgba(255, 255, 255, 0.85);
+  color: #fff; font-weight: 900; font-size: calc(var(--gw) * 0.36);
+}
+#hit-timeline .slot:not(.selected):not(:disabled):hover { border-color: rgba(255, 255, 255, 0.75); background: rgba(255, 255, 255, 0.06); color: #fff; }
+#hit-timeline .slot.selected {
+  border: 2px solid var(--accent);
+  background: linear-gradient(180deg, rgba(255, 45, 120, 0.38), rgba(138, 92, 255, 0.38));
+  box-shadow: 0 0 18px rgba(255, 45, 120, 0.45);
+}
+#hit-timeline .slot.selected .slot-plus { visibility: hidden; }
+#hit-timeline .slot.selected .slot-q { visibility: visible; }
+#hit-timeline[data-phase="challenge"] .slot.selected {
+  border-color: var(--gold); background: rgba(255, 224, 138, 0.2); box-shadow: 0 0 18px rgba(255, 224, 138, 0.35);
+}
+#hit-timeline[data-phase="challenge"] .slot.selected .slot-q { background: var(--gold); color: #2a1a05; }
+#hit-timeline .slot:disabled { opacity: 0.35; }
+/* In the ask the other gaps are the candidates for a challenge, so they stay
+   at full strength; only a challenger can pick one (CHALLENGE-2). */
+#hit-timeline[data-phase="ask"] .slot:disabled { opacity: 1; cursor: default; }
+/* The defender's locked pick: card-wide from the moment it's locked in. */
+#hit-timeline .slot.original, #hit-timeline .slot.original:disabled {
+  width: calc(var(--cw) * 1.3); opacity: 1; flex-direction: column; gap: calc(var(--tu) * 4);
+  border: 2px solid var(--accent2); background: rgba(138, 92, 255, 0.22); color: var(--text);
+  font-size: max(12px, calc(var(--tu) * 13)); font-weight: 700; text-align: center; padding: 4px;
+}
+#hit-timeline .slot.original b { font-size: max(14px, calc(var(--tu) * 18)); white-space: nowrap; }
+/* Tiny cards leave room for the gap and its tag; the band names whose pick it is. */
+#hit-timeline[data-density="tiny"] .slot.original { gap: 2px; padding: 2px 4px; }
+#hit-timeline[data-density="tiny"] .slot.original > span:not(.orig-tag) { display: none; }
+.orig-tag {
+  font-size: max(10px, calc(var(--tu) * 10.5)); font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  background: var(--accent2); border-radius: 999px; padding: 1px 8px;
+}
+/* The first card is free: its one gap is card-sized, centred and chosen. */
+#hit-timeline .slot.first {
+  width: clamp(170px, min(17vw, 30vh), 360px); height: auto; aspect-ratio: 1.04;
+  flex-direction: column; gap: 14px; padding: 12px; border-radius: 18px;
+  font-size: clamp(15px, 0.5vw + 10px, 24px); font-weight: 700; color: var(--text); text-align: center;
+}
+#hit-timeline .slot.first .slot-q { width: clamp(52px, 5vw, 84px); height: clamp(52px, 5vw, 84px); max-width: none; max-height: none; font-size: clamp(26px, 2.4vw, 42px); }
+#hit-timeline .slot.first .slot-plus { font-size: clamp(40px, 4vw, 70px); }
+#hit-timeline .slot.first .slot-first { max-width: 10em; }
+/* Its row is as tall as the box, whatever the density. On a short board
+   fitFirst() (when.js) caps its height, or lays it flat: the "?" beside the
+   words, so neither spills out (V4). */
+#hit-timeline[data-first] .tl-row { height: auto; }
+#hit-timeline[data-first="flat"] .slot.first {
+  flex-direction: row; aspect-ratio: auto; width: auto; min-width: 220px; gap: 12px; padding: 6px 18px; text-align: left;
+}
+#hit-timeline[data-first="flat"] .slot.first .slot-q { width: 44px; height: 44px; font-size: 24px; }
+#hit-timeline[data-first="flat"] .slot.first .slot-plus { font-size: 36px; }
+#hit-timeline .slot:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+/* ---------- action bar ---------- */
+.wt-bar {
+  flex: none;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center;
+  gap: 10px clamp(8px, 0.8vw, 22px);
+  padding: clamp(10px, 1.6vh, 20px) var(--pad-x) max(clamp(10px, 1.6vh, 20px), env(safe-area-inset-bottom));
+  background: rgba(10, 7, 20, 0.78);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.wt-bar-left { justify-self: stretch; min-width: 0; display: flex; align-items: center; gap: clamp(6px, 0.7vw, 12px); }
+.wt-bar-mid { justify-self: center; }
+.wt-bar-right { justify-self: end; }
+.wt-bar-label { font-size: clamp(11px, 0.3vw + 7px, 16px); font-weight: 800; letter-spacing: 0.14em; line-height: 1.3; text-transform: uppercase; color: var(--gold); }
+.wt-bar .ghost-btn {
+  color: var(--text); white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis;
+  font-size: clamp(13px, min(0.4vw + 7.8px, 0.9vh + 6px), 20px); padding: 0.7em 0.75em;
+}
+.wt-bar .ghost-btn:disabled { opacity: 0.5; border-style: dashed; color: var(--muted); }
+.cost {
+  display: inline-flex; align-items: center; gap: 0.3em; white-space: nowrap;
+  padding: 1px 8px; border-radius: 999px; font-weight: 800; font-variant-numeric: tabular-nums;
+  background: rgba(255, 45, 120, 0.2); color: #fff;
+}
+.ghost-btn:disabled .cost { background: rgba(255, 255, 255, 0.1); color: var(--muted); }
+#btn-hit-buy.done { opacity: 1; border-style: solid; border-color: rgba(255, 224, 138, 0.55); color: var(--gold); background: rgba(255, 224, 138, 0.08); }
+#btn-hit-replay.promote { border-color: var(--accent); box-shadow: 0 0 16px rgba(255, 45, 120, 0.35); }
+/* The primary button keeps one size whatever it says (and whether it's on). */
+.wt-primary {
+  width: clamp(300px, 26vw + 52px, 600px);
+  height: clamp(52px, min(3.4vw + 10px, 7.4vh), 84px);
+  display: flex; align-items: center; justify-content: center; gap: 0.5em;
+  font-size: clamp(19px, min(0.6vw + 12px, 1.3vh + 9px), 30px);
+  padding: 0 0.9em; border: 2px solid transparent; border-radius: 16px;
+  white-space: nowrap; overflow: hidden;
+  box-shadow: 0 10px 30px rgba(255, 45, 120, 0.3);
+}
+.wt-primary .pb-text { overflow: hidden; text-overflow: ellipsis; }
+.wt-primary .pb-long { display: none; }   /* "Challenge: " where there's room for it */
+.wt-primary kbd { font-size: 0.6em; background: rgba(255, 255, 255, 0.2); border-color: rgba(255, 255, 255, 0.35); }
+.wt-primary:disabled {
+  filter: none; background: rgba(255, 255, 255, 0.03); border: 2px dashed rgba(255, 255, 255, 0.28);
+  color: #b9b3d0; box-shadow: none;
+}
+.wt-primary:disabled kbd { background: transparent; }
+.wt-primary.gold { background: linear-gradient(90deg, #ffb838, var(--gold)); color: #2a1a05; box-shadow: 0 10px 30px rgba(255, 184, 56, 0.3); }
+.wt-primary.gold kbd { background: rgba(0, 0, 0, 0.12); border-color: rgba(0, 0, 0, 0.25); }
+/* The ask: the centre is a signpost, not a button. Nothing that commits sits
+   where Lock just was, so a double-click's second half lands on nothing. */
+.wt-primary.ask:disabled { border-color: rgba(255, 224, 138, 0.5); background: rgba(255, 224, 138, 0.04); color: #efe2bf; }
+
+/* ---------- the reveal (phase revealed) ---------- */
+/* It stands in for the turn line and the timeline: the scoreboard stays
+   live above it and the action bar below. One card, tinted by the outcome
+   (green: the placing team got it; gold: stolen, gold being the
+   challenger's colour throughout; red: discarded). */
+#screen-when.revealing > .wt-hero, #screen-when.revealing > .wt-board { display: none; }
+.wt-reveal {
+  flex: 1 1 auto; min-height: 0;
+  display: flex; flex-direction: column;
+  overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
+  padding: clamp(8px, 1.6vh, 22px) var(--pad-x);
+  /* one strip unit: ~1px on a laptop, more on a TV */
+  --ru: clamp(0.72px, min(0.075vw, 0.12vh), 1.5px);
+}
+.rv-card {
+  --tone: var(--good);
+  margin: auto; width: 100%; max-width: 1600px;
+  display: flex; flex-direction: column; gap: clamp(8px, 1.5vh, 22px);
+  padding: clamp(12px, min(1.8vw, 2.4vh), 34px) clamp(14px, 2vw, 40px);
+  border: 2px solid var(--tone); border-radius: 22px;
+  border-color: color-mix(in srgb, var(--tone) 72%, transparent);
+  background: linear-gradient(160deg, rgba(31, 24, 52, 0.94), rgba(38, 19, 52, 0.94));
+  box-shadow: 0 0 44px color-mix(in srgb, var(--tone) 16%, transparent), 0 20px 60px rgba(0, 0, 0, 0.45);
+  animation: pop 0.25s ease-out;
+}
+.rv-card.tone-steal { --tone: var(--gold); }
+.rv-card.tone-miss { --tone: var(--bad); }
+
+/* The song, then the outcome as the headline (CHALLENGE-4), then the calls. */
+.rv-top {
+  display: grid; grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "art id" "art head" "art clauses";
+  column-gap: clamp(14px, 2vw, 40px); align-items: start;
+}
+.rv-art {
+  grid-area: art; --art: clamp(96px, min(10.5vw, 17vh), 240px);
+  width: var(--art); height: var(--art); border-radius: 16px; object-fit: cover;
+  background: #111; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.rv-id { grid-area: id; min-width: 0; }
+.rv-was { font-size: clamp(12px, min(0.9vw, 1.5vh), 20px); font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.rv-song { display: flex; align-items: center; flex-wrap: wrap; gap: 0 clamp(12px, 1.6vw, 30px); }
+.rv-year {
+  font-size: clamp(48px, min(5.4vw, 9vh), 132px); font-weight: 900; line-height: 1.02;
+  letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--gold);
+}
+.rv-name { min-width: 0; }
+.rv-title { font-size: clamp(18px, min(1.8vw, 3vh), 42px); font-weight: 800; line-height: 1.15; overflow-wrap: break-word; }
+.rv-artist { font-size: clamp(15px, min(1.3vw, 2.2vh), 30px); font-weight: 700; color: #b89cff; overflow-wrap: break-word; }
+.wt-reveal .rv-am { margin: 2px 0 0; font-size: clamp(13px, min(0.95vw, 1.6vh), 20px); color: #b89cff; }
+.rv-head {
+  grid-area: head; margin-top: clamp(6px, 1.1vh, 16px);
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 0.45em;
+  font-size: clamp(22px, min(2.5vw, 4.2vh), 60px); font-weight: 900; line-height: 1.15; color: var(--tone);
+}
+.rv-head:focus { outline: none; }   /* a focus target for the keys, not a control */
+.rv-count {
+  font-size: 0.66em; font-weight: 800; color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums;
+  padding: 0.08em 0.55em; border: 2px solid rgba(255, 255, 255, 0.28); border-radius: 999px; background: rgba(255, 255, 255, 0.08);
+}
+.rv-clauses {
+  grid-area: clauses; margin-top: clamp(4px, 0.8vh, 12px);
+  font-size: clamp(15px, min(1.3vw, 2.2vh), 30px); font-weight: 700; line-height: 1.4; color: #ddd8ee;
+}
+.rv-clauses .sep { color: var(--muted); font-weight: 400; }
+.rv-clauses .gold { color: var(--gold); }
+
+/* Where it belonged: a window of the placing team's line (LOOP-M3), one row. */
+.rv-where, .rv-foot { border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: clamp(8px, 1.4vh, 18px); }
+.rv-cap { font-size: clamp(12px, min(0.85vw, 1.5vh), 19px); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.rv-cap b { color: var(--text); font-weight: 800; }
+.rv-strip {
+  /* (the height has a floor: at small units the type stops shrinking before the card does) */
+  --rw: calc(var(--ru) * 112); --rh: max(calc(var(--ru) * 180), calc(var(--ru) * 90 + 72px)); --rart: calc(var(--ru) * 90);
+  --rgap: calc(var(--ru) * 12); --rmore: calc(var(--ru) * 100);
+  --rv-side: 1;   /* the "‹ 6 earlier" counts sit beside the row (when.js reads this) */
+  position: relative; container-type: inline-size;
+  /* the counts hug the row, and the three are centred together */
+  display: flex; justify-content: center; align-items: center;
+}
+.rv-more { flex: none; width: var(--rmore); font-size: clamp(12px, calc(var(--ru) * 15), 22px); font-weight: 600; color: var(--muted); white-space: nowrap; }
+.rv-more.l { text-align: right; padding-right: var(--rgap); }
+.rv-more.r { padding-left: var(--rgap); }
+.rv-row {
+  flex: 0 1 auto; display: flex; justify-content: center; justify-content: safe center; align-items: stretch; gap: var(--rgap);
+  min-width: 0; overflow-x: auto; scrollbar-width: thin;
+  padding: calc(var(--ru) * 20 + 8px) 6px 8px;   /* room for the tag above the song, and its ring */
+}
+.rv-probe { position: absolute; left: 0; top: 0; visibility: hidden; pointer-events: none; }
+.rv-item {
+  position: relative; flex: none; width: var(--rw); height: var(--rh);
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  padding: calc(var(--ru) * 8) calc(var(--ru) * 6); border-radius: calc(var(--ru) * 14);
+}
+.rv-c { background: rgba(255, 255, 255, 0.075); border: 1px solid rgba(255, 255, 255, 0.18); }
+.rv-c img { flex: none; width: var(--rart); height: var(--rart); border-radius: calc(var(--ru) * 8); object-fit: cover; background: #111; }
+.rv-c b { font-size: max(17px, calc(var(--ru) * 23)); line-height: 1.1; margin: calc(var(--ru) * 6) 0 calc(var(--ru) * 2); color: var(--gold); font-variant-numeric: tabular-nums; }
+.rv-c b + span {
+  max-width: 100%; font-size: max(11.5px, calc(var(--ru) * 13)); line-height: 1.25; color: #d9d4ea;
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+/* Same-year cards sit together, as on the board. */
+.rv-c.sj { margin-left: calc(-1 * var(--rgap)); border-left: 1px dashed rgba(255, 255, 255, 0.25); border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.rv-c:has(+ .sj) { border-right: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+/* The song in its slot: gold, with the team that won it on a tag. */
+.rv-land { z-index: 1; border: 2px solid var(--gold); background: rgba(255, 224, 138, 0.1); box-shadow: 0 0 0 3px rgba(255, 224, 138, 0.26), 0 0 26px rgba(255, 224, 138, 0.35); }
+.rv-tag {
+  /* above the card, clear of its neighbours, so it may be wider than the card */
+  position: absolute; left: 50%; top: 0; transform: translate(-50%, calc(-100% - 3px));
+  width: max-content; max-width: calc(100% + 2 * var(--rgap) + 48px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding: 1px 9px; border-radius: 999px; font-size: max(11px, calc(var(--ru) * 12.5)); font-weight: 800;
+  background: #4a3d6e; color: #fff;
+}
+.rv-tag.ok { background: var(--good); color: #062812; }
+/* A losing pick: a red ✗ ghost. Another gap the song fits: a green one. */
+.rv-ghost { justify-content: center; gap: calc(var(--ru) * 4); border: 2px dashed; }
+.rv-ghost b { font-size: max(12px, calc(var(--ru) * 14)); font-weight: 800; line-height: 1.2; color: #fff; overflow-wrap: anywhere; }
+.rv-ghost > span:last-child { font-size: max(11.5px, calc(var(--ru) * 13)); color: #e6e1f4; font-variant-numeric: tabular-nums; }
+.rv-x { font-size: max(20px, calc(var(--ru) * 30)); font-weight: 900; line-height: 1; }
+.rv-ghost.miss { border-color: var(--bad); background: rgba(255, 92, 92, 0.13); }
+.rv-ghost.miss .rv-x { color: var(--bad); }
+.rv-ghost.fits { border-color: var(--good); background: rgba(47, 217, 119, 0.1); }
+.rv-ghost.fits .rv-x { color: var(--good); }
+.rv-skip { flex: none; align-self: center; display: flex; flex-direction: column; align-items: center; color: var(--muted); font-size: max(18px, calc(var(--ru) * 24)); line-height: 1; }
+.rv-skip small { font-size: 0.6em; }
+
+/* The name-it bonus (a toggle that never blocks Next) and where the card went. */
+.rv-foot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 24px; }
+.rv-bonus {
+  display: inline-flex; align-items: center; gap: 0.6em; max-width: 100%; text-align: left; cursor: pointer;
+  font: inherit; font-size: clamp(14px, min(1.2vw, 2vh), 26px); font-weight: 600; line-height: 1.3; color: var(--text);
+  padding: 0.55em 0.9em; border: 1px solid rgba(255, 255, 255, 0.24); border-radius: 14px; background: rgba(255, 255, 255, 0.05);
+}
+.rv-bonus:hover { border-color: rgba(255, 255, 255, 0.5); }
+.rv-check { flex: none; display: grid; place-items: center; width: 1.3em; height: 1.3em; border: 2px solid rgba(255, 255, 255, 0.6); border-radius: 6px; }
+.rv-bonus.on { border-color: var(--good); background: rgba(47, 217, 119, 0.12); }
+.rv-bonus.on .rv-check { border-color: var(--good); background: var(--good); }
+.rv-bonus.on .rv-check::after { content: '\2713'; color: #062812; font-weight: 900; font-size: 0.85em; line-height: 1; }
+.rv-bonus .cost { background: rgba(255, 45, 120, 0.22); }
+.rv-bonus kbd { font-size: 0.7em; }
+.rv-dest { font-size: clamp(14px, min(1.2vw, 2vh), 26px); font-weight: 800; color: var(--gold); text-align: right; }
+.rv-card.tone-miss .rv-dest { color: var(--muted); }
+
+/* The tiles: what changed this turn, +1 green / −1 red, in place of the word. */
+.dl {
+  display: inline-block; margin-left: 0.35em; padding: 0 0.5em; border-radius: 999px; vertical-align: 0.08em;
+  font-size: 0.95em; font-weight: 900; line-height: 1.35; font-variant-numeric: tabular-nums;
+  animation: dl-pop 0.45s ease-out;
+}
+.dl.up { background: var(--good); color: #062812; }
+.dl.down { background: #d9364a; color: #fff; }
+@keyframes dl-pop { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.2); opacity: 1; } }
+.tk-zero { font-weight: 800; }
+.tile-delta {
+  display: none; position: absolute; left: 50%; bottom: 0; transform: translate(-50%, 55%);
+  padding: 0 8px; border-radius: 999px; white-space: nowrap; font-size: 11px; font-weight: 800; line-height: 1.5;
+  background: #1c1030; border: 1.5px solid var(--gold); color: var(--text); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+@container (max-width: 210px) {
+  .tile-count .dl, .tile-tokens .dl, .tile-tokens .tk-zero { display: none; }
+  .tile-delta { display: block; }
+}
+
+/* The bar on the reveal: Buy · "Play it again" where Lock was · Next where
+   Replay was. */
+.wt-bar .wt-again {
+  width: clamp(300px, 26vw + 52px, 600px); height: clamp(52px, min(3.4vw + 10px, 7.4vh), 84px);
+  display: flex; align-items: center; justify-content: center; gap: 0.5em;
+  font-size: clamp(17px, min(0.55vw + 11px, 1.2vh + 8px), 28px); font-weight: 700; color: var(--text);
+  border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 16px;
+}
+.wt-again .equalizer { height: 0.9em; gap: 2px; }
+.wt-again .equalizer span { width: 3px; border-radius: 2px; }
+.wt-again .equalizer.paused { display: none; }
+.wt-again kbd, .wt-next kbd { font-size: 0.6em; }
+.wt-next {
+  min-width: clamp(240px, 16vw + 40px, 480px); max-width: 100%;
+  height: clamp(52px, min(3.4vw + 10px, 7.4vh), 84px);
+  display: flex; align-items: center; justify-content: center; gap: 0.5em;
+  font-size: clamp(18px, min(0.6vw + 11px, 1.3vh + 8px), 30px);
+  padding: 0 0.9em; border-radius: 16px; white-space: nowrap; overflow: hidden;
+  box-shadow: 0 10px 30px rgba(255, 45, 120, 0.3);
+}
+.wt-next .pb-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* A long team name is cut, never "you're up". */
+.nx-long .nx-team { display: inline-block; max-width: 10em; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+.nx-short { display: none; }
+.wt-next kbd { background: rgba(255, 255, 255, 0.2); border-color: rgba(255, 255, 255, 0.35); }
+.wt-bar-right { min-width: 0; max-width: 100%; }
+.wt-bar .for { font-weight: 800; }
+
+/* The turn banner (ROOM-7): 1.2 s over the next team's board, taking every
+   stray click. Motion-free with reduced motion (it still takes the clicks). */
+.wt-banner {
+  position: fixed; inset: 0; z-index: 45;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+  background: rgba(12, 8, 24, 0.82); backdrop-filter: blur(6px);
+  animation: bn-fade 1.2s ease both;
+}
+.bn-text {
+  --tc: var(--team-0);
+  max-width: 100%; text-align: center; overflow-wrap: anywhere;
+  font-size: clamp(34px, min(5.4vw, 10vh), 132px); font-weight: 900; line-height: 1.1; letter-spacing: -0.01em;
+  animation: bn-in 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+}
+.bn-text:has(.t1) { --tc: var(--team-1); }
+.bn-text:has(.t2) { --tc: var(--team-2); }
+.bn-text::before { content: ''; display: block; width: 2.4em; height: 0.12em; margin: 0 auto 0.35em; border-radius: 99px; background: var(--tc); }
+.bn-team { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+@keyframes bn-fade { 0% { opacity: 0; } 12%, 84% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes bn-in { from { transform: translateY(20px) scale(0.95); opacity: 0; } }
+
+/* Toasts rise above the action bar instead of covering it. */
+body:has(#screen-when.active) .toast {
+  bottom: calc(clamp(52px, min(3.4vw + 10px, 7.4vh), 84px) + 2 * clamp(10px, 1.6vh, 20px) + 14px);
+}
+
+/* Keycap hints mean nothing on a touch screen (ACCESS-6). */
+@media (hover: none) and (pointer: coarse) {
+  #screen-when kbd { display: none; }
+}
+
+/* ---------- tablets and narrow windows ---------- */
+@media (max-width: 1100px) {
+  .wt-rules-word { display: none; }
+  .wt-rules { width: 38px; height: 38px; padding: 0; }
+}
+/* A narrower laptop window: the token moves use their short words. */
+@media (max-width: 1180px) {
+  .wt-bar-label, .wt-bar .long { display: none; }
+  .wt-bar .short { display: inline; }
+}
+@media (min-width: 1280px), (min-width: 601px) and (max-width: 900px) and (min-height: 521px) {
+  .wt-primary .pb-long { display: inline; }
+}
+@media (max-width: 900px) and (min-height: 521px) {
+  .wt-bar { grid-template-columns: 1fr 1fr 1fr; grid-template-areas: "mid mid mid" "skip buy replay"; align-items: stretch; }
+  .wt-bar-left, .wt-bar-right { display: contents; }
+  .wt-bar-label { display: none; }
+  .wt-bar-mid { grid-area: mid; justify-self: stretch; }
+  .wt-primary { width: 100%; }
+  body:has(#screen-when.active) .toast { bottom: calc(clamp(52px, min(3.4vw + 10px, 7.4vh), 84px) + 2 * clamp(10px, 1.6vh, 20px) + 70px); }
+  #btn-hit-skip { grid-area: skip; }
+  #btn-hit-buy { grid-area: buy; }
+  #btn-hit-cancel-challenge { grid-column: 1 / 3; grid-row: 2; }
+  #btn-hit-replay { grid-area: replay; }
+  .wt-bar .ghost-btn { text-align: center; }
+}
+@media (max-width: 820px) {
+  .wt-head { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "quit target tools" "tiles tiles tiles"; }
+  .wt-target { display: block; }
+  .wt-volume { display: none; }
+  .scoreboard .tile { max-width: none; }
+}
+
+/* ---------- phones ---------- */
+@media (max-width: 600px) {
+  #screen-when { --pad-x: 12px; }
+  .wt-quit { padding: 8px 12px; }
+  .scoreboard { gap: 6px; }
+  .tile {
+    grid-template-areas: "name name" "count tokens" "bar bar";
+    padding: 12px 8px 8px 16px; border-radius: 14px;
+  }
+  .tile::before { left: 5px; }
+  .tile { padding: 12px 6px 8px 13px; }
+  .tile-name { font-size: 13.5px; letter-spacing: -0.01em; }
+  .tile-badge { position: absolute; top: 0; left: 50%; transform: translate(-50%, -55%); font-size: 10px; padding: 1px 8px; }
+  .tile.up .tile-badge, .tile.defending .tile-badge, .tile.challenging .tile-badge { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4); }
+  .tile-count { font-size: 12px; }
+  .tile-tokens { font-size: 14px; gap: 3px; }
+  .wt-hero { justify-content: flex-start; --rec: 60px; }
+  .wt-hero .equalizer { display: none; }
+  .wt-pill { padding: 1px 10px; }
+  .wt-q .q-long.has-short {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  .wt-q .q-short, .wt-bar .short { display: inline; }
+  .wt-bar .long { display: none; }
+  /* The hero already says whose line it is; the room goes to the cards. */
+  .tl-caption { display: none; }
+  .wt-bar { padding-top: 10px; }
+  .wt-bar .ghost-btn { padding: 0.6em 0.45em; white-space: normal; line-height: 1.3; text-align: center; }
+}
+@media (max-width: 380px) {
+  .wt-bar .ghost-btn .cost { padding: 1px 5px; }
+}
+/* The band on narrow screens: the tiles run the full width, so the slots do
+   too; the record stays beside the title, and "Let it stand" gets a row of
+   its own. Long team names wrap to two lines instead of crowding (M2). */
+@media (max-width: 820px) {
+  .wt-hero.banded > .wt-record { grid-row: 1 / span 2; align-self: start; }
+}
+@media (max-width: 600px) {
+  .wt-hero.banded { --rec: 54px; margin-top: 10px; padding-top: 10px; padding-bottom: 12px; row-gap: 6px; }
+  .band-title { font-size: 24px; }
+  .band-long, .bs-verb { display: none; }
+  .band-text { min-height: 0; font-size: 15px; line-height: 1.4; }
+  .band-slots { --slot-h: 62px; row-gap: 8px; margin-top: 4px; }
+  .band-slot { border-radius: 12px; padding: 4px 6px 4px 14px; font-size: 14px; gap: 3px; }
+  .band-slot.rival::before { left: 5px; }
+  .bs-name { white-space: normal; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.12; }
+  .band-slot.placed, .band-slot.pick { padding: 4px 6px; }
+  .band-slot.placed > span { -webkit-line-clamp: 3; line-height: 1.15; }
+  .band-slot.stand { height: 52px; font-size: 17px; }
+  /* A pick box is a third of a phone: the whose-pick line may take two
+     lines, the gap itself never gets cut. */
+  .band-slot.pick > span { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: 12px; line-height: 1.15; }
+  .band-slot.pick b { font-size: clamp(12.5px, 3.6vw, 14.5px); letter-spacing: -0.01em; text-overflow: clip; }
+  .band-text .band-nb { display: inline; }
+}
+/* Landscape phones: squeeze the chrome so the line keeps some room. */
+@media (max-height: 520px) and (min-width: 601px) {
+  .wt-hero { --rec: 48px; padding-top: 4px; }
+  .wt-hero .equalizer { display: none; }
+  .tile-bar { margin-top: 3px; }
+  .wt-bar { padding-top: 6px; padding-bottom: 6px; }
+  .wt-bar-label, .wt-bar .long { display: none; }
+  .wt-bar .short { display: inline; }
+  .wt-primary { height: 44px; width: min(34vw, 420px); }
+  .tl-caption { display: none; }
+  /* The band squeezes too: one-line slots, the short copy. */
+  .wt-hero.banded { margin-top: 4px; padding-top: 6px; padding-bottom: 6px; row-gap: 2px; }
+  .band-title { font-size: 20px; }
+  .band-text { min-height: 0; font-size: 13px; line-height: 1.35; }
+  .band-long, .bs-verb { display: none; }
+  .band-text .band-nb { display: inline; }
+  .band-slots { --slot-h: 42px; margin-top: 2px; }
+  .band-slot { font-size: 13px; gap: 1px; }
+  .band-slot.placed, .band-slot.stand { flex-direction: row; gap: 8px; font-size: 14px; }
+}
+/* A landscape phone too narrow for "Let it stand" beside the rivals: rather
+   than a row of its own, it takes the bar's empty left end (the ask hides
+   Skip and Buy), beside "↑ Challenge or let it stand", so the line keeps
+   room for the locked pick (V10). */
+@media (max-height: 520px) and (min-width: 601px) and (max-width: 820px) {
+  .band-slot.stand.wrap {
+    position: fixed; z-index: 2; left: var(--pad-x); bottom: max(6px, env(safe-area-inset-bottom));
+    width: calc((100vw - min(34vw, 420px)) / 2 - var(--pad-x) - 12px); min-width: 0; height: 44px;
+  }
+}
+
+/* ---------- the reveal on smaller screens ---------- */
+/* Two-row bar: "Play it again" full width where Lock was, then Buy and Next. */
+@media (max-width: 900px) and (min-height: 521px) {
+  .wt-bar .wt-again, .wt-next { width: 100%; min-width: 0; }
+  .wt-bar.revealing #btn-hit-buy { grid-area: auto; grid-column: 1; grid-row: 2; }
+  #btn-hit-next { grid-column: 2 / 4; grid-row: 2; }
+}
+/* Phones: the song beside the artwork, the outcome under it at full width,
+   one call per line, and a strip of five year cards that always fits. */
+@media (max-width: 600px) {
+  .wt-reveal { padding: 8px 8px 10px; }
+  .rv-card { border-radius: 16px; gap: 10px; padding: 12px 10px 12px; }
+  .rv-top { grid-template-areas: "art id" "head head" "clauses clauses"; column-gap: 12px; align-items: center; }
+  .rv-art { --art: 84px; border-radius: 12px; }
+  .rv-year { font-size: 50px; }
+  .rv-song { gap: 0 10px; flex-wrap: nowrap; }
+  .rv-name { flex: 1 1 auto; }
+  .rv-title { font-size: 18px; }
+  .rv-artist { font-size: 15px; }
+  .wt-reveal .rv-am { font-size: 13px; }
+  .rv-head { font-size: 22px; margin-top: 10px; }
+  .rv-clauses { font-size: 15px; line-height: 1.35; }
+  .rv-clauses .cl { display: block; }
+  .rv-clauses .sep { display: none; }
+  .rv-cap { font-size: 11.5px; letter-spacing: 0.08em; }
+  .rv-cap-long { display: none; }
+  .rv-strip {
+    --rgap: 5px; --rw: calc((100cqw - 4 * var(--rgap) - 8px) / 5); --rh: 64px; --rart: 0px;
+    --rv-side: 0; --rmore: auto;
+    display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "row row" "l r";
+  }
+  .rv-row { grid-area: row; padding: 22px 4px 6px; }
+  .rv-more { width: auto; padding: 0; font-size: 12px; }
+  .rv-more.l { grid-area: l; text-align: left; }
+  .rv-more.r { grid-area: r; text-align: right; }
+  .rv-item { padding: 4px 3px; border-radius: 10px; justify-content: center; }
+  .rv-c img { display: none; }
+  .rv-c b { font-size: 17px; margin: 0 0 1px; }
+  .rv-c b + span { font-size: 11px; -webkit-line-clamp: 1; }
+  .rv-ghost { gap: 1px; }
+  /* (the calls above name the gaps; here the place says it) */
+  .rv-ghost b { font-size: 10.5px; line-height: 1.12; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .rv-ghost > span:last-child { display: none; }
+  .rv-x { font-size: 16px; }
+  .rv-tag { font-size: 10.5px; padding: 0 6px; }
+  .rv-foot { flex-direction: column-reverse; align-items: stretch; gap: 8px; }
+  .rv-dest { text-align: center; font-size: 15px; }
+  .rv-bonus { font-size: 14px; justify-content: flex-start; padding: 0.5em 0.7em; }
+  .nx-long { display: none; }
+  .nx-short { display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+  .nx-short .nx-team { font-size: 0.72em; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .wt-next .pb-text { display: flex; justify-content: center; }
+}
+@media (max-width: 380px) {
+  .rv-art { --art: 68px; }
+  .rv-year { font-size: 42px; }
+  .rv-title { font-size: 16px; }
+  .rv-head { font-size: 20px; }
+}
+/* Landscape phones: a compact card; it scrolls if it has to, the bar never does. */
+@media (max-height: 520px) and (min-width: 601px) {
+  .wt-reveal { padding: 6px var(--pad-x); }
+  .rv-card { gap: 6px; padding: 8px 14px; }
+  .rv-art { --art: 64px; }
+  .rv-year { font-size: 40px; }
+  .rv-title { font-size: 16px; }
+  .rv-artist { font-size: 13px; }
+  .rv-head { font-size: 20px; margin-top: 4px; }
+  .rv-clauses { font-size: 13px; }
+  .rv-strip { --rw: 88px; --rh: 56px; --rart: 0px; --rgap: 6px; --rmore: 64px; }
+  .rv-c img { display: none; }
+  .rv-item { justify-content: center; padding: 3px; }
+  .rv-c b { font-size: 16px; margin: 0; }
+  .rv-c b + span { -webkit-line-clamp: 1; }
+  .rv-ghost { gap: 1px; }
+  .rv-ghost b { font-size: 11px; line-height: 1.12; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .rv-ghost > span:last-child { display: none; }
+  .rv-x { font-size: 15px; }
+  .rv-where, .rv-foot { padding-top: 6px; }
+  .rv-bonus, .rv-dest { font-size: 13px; }
+  .wt-bar .wt-again { height: 44px; width: min(34vw, 420px); }
+  .wt-next { height: 44px; min-width: 0; }
+  /* "Next ▸ Bass Face" on one line: the long label doesn't fit here */
+  .nx-long { display: none; }
+  .nx-short { display: inline-flex; align-items: baseline; gap: 0.4em; }
+  .nx-short .nx-team { font-size: 0.8em; overflow: hidden; text-overflow: ellipsis; }
+}
+
+/* ---------- when's that tune? · the standings (results and quit) ---------- */
+/* One ranked row per team: its colour down the left edge (as on its tile),
+   rank, name and a line under it, a progress bar, and the count. */
+.standings { list-style: none; display: flex; flex-direction: column; gap: clamp(8px, 1.2vh, 14px); }
+.st-row {
+  --tc: var(--team-0);
+  position: relative; min-width: 0;
+  display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(56px, 0.55fr) auto; align-items: center;
+  column-gap: clamp(12px, 1.3vw, 26px);
+  padding: clamp(9px, 1.2vh, 16px) clamp(14px, 1.3vw, 26px) clamp(9px, 1.2vh, 16px) clamp(26px, 1.9vw, 38px);
+  border: 2px solid rgba(255, 255, 255, 0.14); border-radius: 16px; background: rgba(255, 255, 255, 0.06);
+}
+.st-row.t1 { --tc: var(--team-1); }
+.st-row.t2 { --tc: var(--team-2); }
+.st-row::before {
+  content: ''; position: absolute; left: clamp(10px, 0.75vw, 15px); top: 20%; bottom: 20%;
+  width: 4px; border-radius: 3px; background: var(--tc);
+}
+.st-row.win { border-color: var(--gold); background: rgba(255, 224, 138, 0.07); box-shadow: 0 0 28px rgba(255, 224, 138, 0.12); }
+.st-rank { font-size: clamp(16px, 0.5vw + 10px, 26px); font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
+.st-row.win .st-rank { color: var(--gold); }
+.st-who { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.st-name { font-size: clamp(17px, 0.55vw + 10px, 30px); font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-sub { font-size: clamp(13px, 0.3vw + 9.5px, 21px); color: var(--muted); overflow-wrap: anywhere; }
+.st-bar { height: clamp(7px, 0.5vw, 12px); border-radius: 99px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+.st-bar i { display: block; height: 100%; border-radius: 99px; background: var(--tc); }
+.st-count { white-space: nowrap; font-size: clamp(13px, 0.3vw + 9.5px, 21px); font-weight: 700; color: var(--muted); }
+.st-count b { font-size: clamp(26px, 1.3vw + 11px, 50px); font-weight: 900; line-height: 1; color: var(--text); font-variant-numeric: tabular-nums; }
+.standings.no-bars .st-row { grid-template-columns: auto minmax(0, 1fr) auto; }
+
+/* ---------- quit asks first (M6) ---------- */
+.quit-card { max-width: 680px; padding: clamp(20px, 1.8vw, 34px); }
+.quit-card h2 { font-size: clamp(24px, 0.8vw + 16px, 36px); line-height: 1.2; }
+.quit-text { margin: 6px 0 16px; font-size: clamp(15px, 0.35vw + 11px, 21px); line-height: 1.45; color: #ddd8ee; }
+.quit-buttons { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+.quit-buttons button { font-size: clamp(15px, 0.3vw + 11px, 20px); }
+#btn-quit-keep { display: inline-flex; align-items: center; gap: 0.6em; }
+#btn-quit-keep kbd { font-size: 0.72em; background: rgba(255, 255, 255, 0.2); border-color: rgba(255, 255, 255, 0.35); }
+#btn-quit-end { color: var(--text); }
+.ghost-btn.quit-menu { color: #ff9b9b; border-color: rgba(255, 92, 92, 0.55); }
+.ghost-btn.quit-menu:hover { color: #fff; border-color: var(--bad); background: rgba(255, 92, 92, 0.12); }
+
+/* ---------- when's that tune? · the finale (M5) ---------- */
+/* The outcome and its margin; the ranked standings with Rematch right under
+   them, beside two or three big lines of story; then every card of every
+   timeline, wrapped (ARC-4/5/6/7, ROOM-16). It uses the room's full width,
+   and scrolls down, never sideways. */
+#screen-when-results {
+  max-width: 1760px;
+  padding: clamp(4px, 1vh, 16px) clamp(16px, 2.2vw, 44px) 56px;
+  align-items: stretch;
+}
+/* The top bar above the results spans the same width, so its ends line up
+   with the standings and the story below. */
+body:has(#screen-when-results.active) .topbar {
+  max-width: 1760px;
+  padding-left: clamp(16px, 2.2vw, 44px);
+  padding-right: clamp(16px, 2.2vw, 44px);
+}
+.fin-head { text-align: center; margin-bottom: clamp(14px, 2.4vh, 32px); }
+.fin-title { font-size: clamp(32px, 2.4vw + 12px, 78px); line-height: 1.12; letter-spacing: -0.01em; margin: 0.2em 0 0.18em; overflow-wrap: anywhere; }
+.fin-title .gold { color: var(--gold); }
+.fin-margin { font-size: clamp(16px, 0.5vw + 12px, 29px); color: #ddd8ee; }
+.fin-margin b { color: var(--text); }
+.fin-top { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: clamp(14px, 2vw, 40px); align-items: start; }
+/* Nothing to tell yet (ended before any song): the standings stand alone. */
+.fin-top.solo { grid-template-columns: minmax(0, 1fr); width: 100%; max-width: 900px; margin: 0 auto; }
+.fin-main { min-width: 0; display: flex; flex-direction: column; gap: clamp(12px, 1.8vh, 24px); }
+.fin-buttons { display: flex; gap: 12px; align-items: stretch; }
+.fin-again {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  min-width: clamp(220px, 12vw + 70px, 420px); padding: 0.5em 1.4em; border-radius: 16px;
+  font-size: clamp(17px, 0.6vw + 10px, 30px); line-height: 1.2;
+}
+.rm-sub { font-size: 0.64em; font-weight: 700; opacity: 0.94; }
+.fin-home { padding: 0.6em 1.2em; border-radius: 16px; color: var(--text); font-size: clamp(15px, 0.35vw + 10.5px, 22px); }
+.fin-story { list-style: none; min-width: 0; display: flex; flex-direction: column; gap: clamp(8px, 1.2vh, 14px); }
+.story-item {
+  display: flex; align-items: center; gap: clamp(12px, 1.2vw, 24px);
+  padding: clamp(9px, 1.2vh, 16px) clamp(16px, 1.4vw, 28px);
+  border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 16px; background: rgba(255, 255, 255, 0.05);
+}
+.story-ico { flex: none; font-size: clamp(26px, 1.1vw + 13px, 48px); line-height: 1; }
+.story-text { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.story-text b { font-size: clamp(17px, 0.55vw + 10px, 30px); font-weight: 800; overflow-wrap: anywhere; }
+.story-text span { font-size: clamp(13px, 0.3vw + 9.5px, 21px); color: var(--muted); overflow-wrap: anywhere; }
+
+/* How they got there: each team's whole line, in rank order. */
+.fin-cap {
+  margin: clamp(26px, 4.4vh, 60px) 0 clamp(10px, 1.4vh, 18px);
+  font-size: clamp(12px, 0.32vw + 8.5px, 19px); font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted);
+}
+.fin-lines { display: flex; flex-direction: column; gap: clamp(12px, 1.8vh, 26px); }
+.fin-team {
+  --tc: var(--team-0);
+  min-width: 0; padding: clamp(12px, 1.3vw, 28px);
+  border: 2px solid rgba(255, 255, 255, 0.13); border-radius: 20px; background: rgba(255, 255, 255, 0.035);
+}
+.fin-team.t1 { --tc: var(--team-1); }
+.fin-team.t2 { --tc: var(--team-2); }
+.fin-team.win { border-color: var(--gold); box-shadow: 0 0 34px rgba(255, 224, 138, 0.1); }
+.fin-team-head {
+  display: flex; align-items: center; gap: 0.5em; min-width: 0;
+  margin-bottom: clamp(8px, 1.2vh, 16px); font-size: clamp(17px, 0.55vw + 10px, 30px); font-weight: 800;
+  overflow-wrap: anywhere;
+}
+.fin-team-head .st-rank { font-size: 0.9em; }
+.fin-n { font-size: 0.72em; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.fin-tk { font-weight: 500; opacity: 0.8; }
+.fin-mark { flex: none; width: 5px; height: 1em; border-radius: 3px; background: var(--tc); }
+/* Cards wrap in rows: art beside the year and title, a same-year stack as
+   one piece. Row gaps leave room for a tag riding on a card's top edge. */
+.fin-line {
+  container-type: inline-size;
+  --fc: clamp(150px, 9vw + 50px, 260px);
+  display: flex; flex-wrap: wrap; align-items: stretch; gap: 16px clamp(8px, 0.6vw, 12px);
+  padding-top: 8px;
+}
+.fin-stack { display: flex; flex: none; }
+.fin-card {
+  position: relative; flex: none; width: var(--fc);
+  display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: 1fr 1fr; column-gap: calc(var(--fc) * 0.065);
+  padding: calc(var(--fc) * 0.055) calc(var(--fc) * 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 12px; background: rgba(255, 255, 255, 0.07);
+}
+.fin-card img { grid-row: 1 / span 2; align-self: center; width: calc(var(--fc) * 0.27); aspect-ratio: 1; border-radius: 8px; object-fit: cover; background: #111; }
+.fin-card b { align-self: end; font-size: calc(var(--fc) * 0.135); line-height: 1.05; color: var(--gold); font-variant-numeric: tabular-nums; }
+.fin-t {
+  align-self: start; font-size: max(12px, calc(var(--fc) * 0.074)); line-height: 1.25; color: #d9d4ea;
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.fin-stack .fin-card:not(:first-child) { border-left: 1px dashed rgba(255, 255, 255, 0.3); border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.fin-stack .fin-card:not(:last-child) { border-right: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.fin-card.win { z-index: 1; border: 2px solid var(--gold); background: rgba(255, 224, 138, 0.08); box-shadow: 0 0 0 3px rgba(255, 224, 138, 0.16), 0 0 24px rgba(255, 224, 138, 0.25); }
+.fin-card.bought:not(.win) { border-color: rgba(255, 224, 138, 0.6); }
+.fin-tag {
+  position: absolute; left: 50%; top: 0; transform: translate(-50%, -55%);
+  padding: 1px 8px; border-radius: 999px; white-space: nowrap;
+  font-style: normal; font-size: max(10.5px, calc(var(--fc) * 0.062)); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+  background: var(--gold); color: #2a1a05; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+.fin-card.stolen:not(.win) .fin-tag { background: #2a1537; color: var(--gold); border: 1.5px solid var(--gold); }
+.fin-none { color: var(--muted); font-size: clamp(14px, 0.3vw + 10px, 20px); }
+
+/* Phones (M5-390): one column, standings without bars, full-width buttons,
+   then the story; cards are year and title, three across. */
+@media (max-width: 600px) {
+  #screen-when-results { padding: 0 16px 40px; }
+  .fin-title { font-size: clamp(26px, 8.2vw, 40px); }
+  .fin-margin { font-size: 17px; }
+  .fin-top { grid-template-columns: minmax(0, 1fr); }
+  .st-row { grid-template-columns: auto minmax(0, 1fr) auto; padding: 10px 14px 10px 26px; }
+  .st-row .st-bar { display: none; }
+  .fin-buttons { flex-direction: column; }
+  .fin-again, .fin-home { width: 100%; min-width: 0; }
+  .fin-again { padding: 0.55em 1em; }
+  .fin-home { padding: 0.75em 1em; }
+  .fin-team { padding: 12px; border-radius: 16px; }
+  .fin-line { --fc: calc((100cqw - 2 * 6px) / 3); gap: 14px 6px; }
+  .fin-card { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; padding: 6px 4px; text-align: center; }
+  .fin-card img { display: none; }
+  .fin-card b { font-size: 19px; }
+  .fin-t { font-size: 11.5px; -webkit-line-clamp: 1; }
+  /* (raised a little more: the card's padding is thin here) */
+  .fin-tag { font-size: 9px; letter-spacing: 0.02em; padding: 1px 6px; transform: translate(-50%, -72%); }
+  .fin-how { display: none; }
+  .quit-buttons { flex-direction: column; }
+  .quit-buttons button { width: 100%; justify-content: center; }
+}
+@media (max-width: 380px) {
+  .fin-tag { font-size: 8.5px; padding: 1px 4px; }
+}
+/* Landscape phones: the dialog squeezes so its buttons stay on screen, and
+   the headline gives the standings some room. */
+@media (max-height: 520px) and (min-width: 601px) {
+  .quit-card { padding: 14px 20px; }
+  .quit-card h2 { font-size: 20px; }
+  .quit-text { margin: 2px 0 8px; font-size: 14px; }
+  .quit-card .standings { gap: 6px; }
+  .quit-card .st-row { padding-top: 4px; padding-bottom: 4px; }
+  .quit-card .st-name { font-size: 16px; }
+  .quit-card .st-sub { font-size: 12.5px; }
+  .quit-card .st-count b { font-size: 22px; }
+  .quit-buttons { margin-top: 10px; }
+  .quit-buttons button { padding: 8px 14px; }
+  .fin-title { font-size: 26px; }
+  .fin-margin { font-size: 15px; }
+  .fin-head { margin-bottom: 10px; }
+}
+
+/* ---------- reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .disc, .loader-disc, .equalizer span, .wt-playgate,
+  .reveal-card, .toast, .rv-card, .dl, .wt-banner, .bn-text { animation: none !important; }
+  .equalizer.paused span { transform: scaleY(0.15); }
+  .equalizer span { transform: scaleY(0.6); }
+  *, *::before, *::after { transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+  /* The spin and bounce were the only "it's playing" signal: say it in words. */
+  .wt-playstate { display: inline-block; }
+  .equalizer:not(.paused) ~ .wt-playstate::after { content: '\25B6  Playing'; }
+  .equalizer.paused ~ .wt-playstate::after { content: '\23F8  Stopped'; }
+}

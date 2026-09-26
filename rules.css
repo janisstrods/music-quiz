@@ -1,0 +1,308 @@
+/*
+ * The rules (public/rules.js): the content, wherever it's rendered, and the
+ * in-game rules dialog. Shared by the local app and the online edition.
+ * Layout follows the container, not the viewport, so the same markup works
+ * as a full page on a TV and inside a dialog on a laptop.
+ */
+
+.rules-wrap {
+  container-type: inline-size;
+  width: 100%;
+  --rl-gold: #ffe08a;
+  --rl-pink: var(--accent, #ff2d78);
+  --rl-violet: var(--accent2, #8a5cff);
+  --rl-good: var(--good, #2fd977);
+  --rl-bad: var(--bad, #ff5c5c);
+  --rl-card: var(--card, rgba(255, 255, 255, 0.06));
+  --rl-line: var(--line, rgba(255, 255, 255, 0.12));
+  --rl-muted: var(--muted, #a9a3c2);
+}
+
+/* Sofa-sized body text: 16px on a phone, ~19px on a laptop, 22px on a TV. */
+.rules-doc {
+  font-size: clamp(16px, 11px + 0.6vw, 22px);
+  line-height: 1.5;
+  color: var(--text, #f4f2fb);
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.9em;
+  text-align: left;
+}
+.rules-doc .rules-sec {
+  grid-column: span 2;
+  background: var(--rl-card);
+  border: 1px solid var(--rl-line);
+  border-radius: 20px;
+  padding: 1em 1.15em 1.1em;
+  min-width: 0;
+}
+/* TV widths, six tracks: goal + needs, the turn, tokens + challenges (the
+   two tables need the room), three short sections, then the keys. */
+.rules-doc .rules-goal { grid-column: span 4; }
+.rules-doc .rules-tokens, .rules-doc .rules-steal { grid-column: span 3; }
+.rules-doc .rules-turn, .rules-doc .rules-keys { grid-column: 1 / -1; }
+
+/* Laptop and dialog widths: two columns, the big sections full width. */
+@container (max-width: 1240px) {
+  .rules-doc { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rules-doc .rules-sec { grid-column: span 1; }
+  .rules-doc .rules-goal, .rules-doc .rules-need, .rules-doc .rules-turn { grid-column: 1 / -1; }
+  .rules-doc .rules-tokens, .rules-doc .rules-steal, .rules-doc .rules-keys { grid-column: span 1; }
+}
+/* Phones: one column. */
+@container (max-width: 640px) {
+  .rules-doc { grid-template-columns: minmax(0, 1fr); }
+  .rules-doc .rules-sec, .rules-doc .rules-tokens, .rules-doc .rules-steal, .rules-doc .rules-keys {
+    grid-column: 1 / -1; padding: 0.9em 0.9em 1em; border-radius: 16px;
+  }
+  .rules-doc .rules-goal .rules-yc { min-width: 3.3em; padding: 0.35em 0.3em; }
+  .rules-doc .rules-goal .rules-art { width: 2.1em; height: 2.1em; }
+  .rules-doc .rules-goal .rules-gap.q { min-width: 2.2em; }
+}
+
+.rules-doc h2 {
+  display: flex; align-items: center; gap: 0.45em;
+  font-size: 1.3em; font-weight: 800; line-height: 1.2;
+  margin: 0 0 0.55em;
+  text-align: left;
+}
+.rules-doc h3 { font-size: 1.08em; font-weight: 800; margin: 0 0 0.3em; }
+.rules-doc p { margin: 0 0 0.6em; }
+.rules-doc p:last-child { margin-bottom: 0; }
+.rules-doc b { font-weight: 700; }
+.rules-doc .rules-ico { font-size: 1em; line-height: 1; flex: 0 0 auto; }
+.rules-doc .rules-lead { font-size: 1.12em; font-weight: 600; }
+.rules-doc kbd {
+  display: inline-block; min-width: 1.6em; text-align: center;
+  font-size: 0.78em; line-height: 1.35; padding: 0.05em 0.4em;
+  background: rgba(255, 255, 255, 0.1); border: 1px solid var(--rl-line);
+  border-bottom-width: 2px; border-radius: 6px;
+  font-family: ui-monospace, Menlo, monospace; color: var(--text, #f4f2fb);
+}
+.rules-doc .rules-note { color: var(--rl-muted); font-size: 0.9em; margin-top: 0.6em; }
+.rules-doc .rules-nw { white-space: nowrap; }
+.rules-sr {
+  position: absolute !important; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
+/* Lists: spelled out here, so the host page's own list styles can't leak in. */
+.rules-doc .rules-list { list-style: none; margin: 0 0 0.6em; padding: 0; display: flex; flex-direction: column; gap: 0.45em; }
+.rules-doc .rules-list li { position: relative; padding-left: 1.1em; }
+.rules-doc .rules-list li::before {
+  content: ''; position: absolute; left: 0.1em; top: 0.62em;
+  width: 0.42em; height: 0.42em; border-radius: 50%;
+  background: linear-gradient(135deg, var(--rl-pink), var(--rl-violet));
+}
+
+/* ---------- mini timeline pieces ---------- */
+.rules-fig { margin: 0.4em 0 0.9em; }
+.rules-line {
+  display: flex; flex-wrap: wrap; align-items: stretch; justify-content: center;
+  gap: 0.35em;
+}
+.rules-cap { text-align: center; color: var(--rl-muted); font-size: 0.85em; margin: 0.4em 0 0; }
+.rules-cap b { color: var(--rl-gold); }
+
+.rules-yc {
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 0.25em;
+  min-width: 3.4em;
+  padding: 0.35em 0.5em;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--rl-line);
+  border-radius: 10px;
+  vertical-align: middle;
+}
+.rules-yc b { color: var(--rl-gold); font-weight: 800; font-size: 1.05em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.rules-yc.hl { border-color: var(--rl-gold); box-shadow: 0 0 0 2px rgba(255, 224, 138, 0.25); }
+.rules-art {
+  display: block; width: 2.6em; height: 2.6em; border-radius: 7px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.55) 0 0.12em, rgba(0, 0, 0, 0.2) 0.13em 0.75em, transparent 0.76em),
+    linear-gradient(135deg, hsl(var(--h) 70% 58%), hsl(calc(var(--h) + 50) 65% 36%));
+}
+.rules-goal .rules-yc { min-width: 4.2em; padding: 0.45em 0.55em 0.4em; }
+
+.rules-gap {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.9em; padding: 0.2em 0.35em;
+  border: 2px dashed rgba(255, 255, 255, 0.28);
+  border-radius: 10px;
+  color: var(--rl-muted); font-weight: 700;
+  vertical-align: middle;
+}
+.rules-gap.q {
+  min-width: 2.6em; border-style: solid; border-color: var(--rl-pink);
+  background: rgba(255, 45, 120, 0.2); color: #fff; font-size: 1.15em;
+  box-shadow: 0 0 18px rgba(255, 45, 120, 0.45);
+}
+.rules-gap.good { border-color: var(--rl-good); color: var(--rl-good); background: rgba(47, 217, 119, 0.1); }
+.rules-gap.lbl {
+  font-size: 0.82em; font-weight: 600; color: var(--text, #f4f2fb);
+  border-width: 1.5px; padding: 0.2em 0.55em; white-space: nowrap;
+}
+.rules-chips { display: flex; flex-wrap: wrap; gap: 0.35em; }
+
+/* Same-year cards joined edge to edge, as the game stacks them. */
+.rules-stack { display: inline-flex; }
+.rules-stack .rules-yc:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; border-right: 0; }
+.rules-stack .rules-yc:last-child { border-top-left-radius: 0; border-bottom-left-radius: 0; border-left-style: dashed; }
+
+.rules-ok { color: var(--rl-good); font-weight: 800; }
+.rules-no { color: var(--rl-bad); font-weight: 800; }
+
+/* A gold admission ticket with notched sides, the game's token. */
+.rules-tk {
+  display: inline-block; width: 1.35em; height: 0.85em; vertical-align: -0.08em;
+  margin: 0 0.08em;
+  border-radius: 3px;
+  background:
+    linear-gradient(90deg, transparent 64%, rgba(120, 80, 0, 0.35) 64% 68%, transparent 68%),
+    linear-gradient(135deg, #ffe9a8, #f2b544);
+  -webkit-mask:
+    radial-gradient(circle at 0 50%, transparent 0.17em, #000 0.18em) left / 51% 100% no-repeat,
+    radial-gradient(circle at 100% 50%, transparent 0.17em, #000 0.18em) right / 51% 100% no-repeat;
+  mask:
+    radial-gradient(circle at 0 50%, transparent 0.17em, #000 0.18em) left / 51% 100% no-repeat,
+    radial-gradient(circle at 100% 50%, transparent 0.17em, #000 0.18em) right / 51% 100% no-repeat;
+}
+.rules-tks { display: inline-flex; gap: 0.05em; }
+
+/* ---------- sections ---------- */
+.rules-doc .rules-goal { display: flex; flex-direction: column; }
+.rules-doc .rules-goal .rules-fig { margin: 0.2em 0 0.8em; }
+
+.rules-doc .rules-needs { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.55em; }
+.rules-doc .rules-needs li { display: flex; align-items: flex-start; gap: 0.6em; }
+.rules-doc .rules-needs .rules-ico {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.9em; height: 1.9em; border-radius: 10px; font-size: 1.05em;
+  background: rgba(255, 255, 255, 0.07); border: 1px solid var(--rl-line);
+}
+.rules-doc .rules-needs li > span:last-child { padding-top: 0.2em; }
+@container (max-width: 1240px) and (min-width: 641px) {
+  .rules-doc .rules-needs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.rules-doc .rules-steps {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.7em;
+}
+.rules-doc .rules-step {
+  position: relative;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--rl-line);
+  border-radius: 16px;
+  padding: 0.85em 0.9em 0.9em;
+  min-width: 0;
+}
+.rules-doc .rules-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.7em; height: 1.7em; border-radius: 50%;
+  background: linear-gradient(135deg, var(--rl-pink), var(--rl-violet));
+  font-weight: 800; font-size: 0.9em; margin-bottom: 0.45em;
+}
+.rules-doc .rules-step p { font-size: 0.94em; }
+/* The steps read left to right; a chevron between cards says so. */
+.rules-doc .rules-step:not(:first-child)::before {
+  content: '›'; position: absolute; left: -0.62em; top: 0.55em;
+  color: var(--rl-muted); font-size: 1.3em; font-weight: 800; line-height: 1;
+}
+@container (max-width: 980px) {
+  .rules-doc .rules-steps { grid-template-columns: repeat(auto-fit, minmax(13em, 1fr)); }
+  .rules-doc .rules-step:not(:first-child)::before { content: none; }
+}
+@container (max-width: 640px) {
+  .rules-doc .rules-steps { grid-template-columns: minmax(0, 1fr); gap: 0.5em; }
+  .rules-doc .rules-step { display: grid; grid-template-columns: 2.1em minmax(0, 1fr); column-gap: 0.6em; padding: 0.75em; }
+  .rules-doc .rules-step > * { grid-column: 2; }
+  .rules-doc .rules-step .rules-num { grid-column: 1; grid-row: 1 / span 4; margin: 0; }
+}
+
+/* ---------- tables ---------- */
+.rules-doc .rules-table { width: 100%; border-collapse: collapse; margin: 0.2em 0 0.6em; }
+.rules-doc .rules-table th, .rules-doc .rules-table td {
+  text-align: left; vertical-align: top;
+  padding: 0.5em 0.45em; border-top: 1px solid var(--rl-line);
+}
+.rules-doc .rules-table tbody th { font-weight: 700; white-space: nowrap; }
+.rules-doc .rules-th th {
+  border-top: 0; padding: 0.7em 0 0.25em;
+  font-size: 0.72em; letter-spacing: 0.14em; text-transform: uppercase; color: var(--rl-gold);
+}
+.rules-doc .rules-tokens tbody tr:first-child th { padding-top: 0.2em; }
+.rules-doc .rules-tokens td:last-child { font-size: 0.9em; color: var(--rl-muted); }
+.rules-doc .rules-cost { white-space: nowrap; }
+.rules-doc .rules-cost b { color: var(--rl-gold); font-size: 1.1em; margin-left: 0.3em; }
+.rules-doc .rules-plus { color: var(--rl-good); font-weight: 800; margin-right: 0.1em; }
+.rules-doc .rules-earn .rules-cost b { color: var(--rl-good); }
+
+.rules-doc .rules-outcomes thead th {
+  border-top: 0; font-size: 0.72em; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--rl-muted); font-weight: 700; padding-bottom: 0.3em;
+}
+.rules-doc .rules-outcomes td:nth-child(-n+2) { text-align: center; width: 4.5em; font-size: 1.1em; }
+.rules-doc .rules-outcomes td:last-child { font-size: 0.92em; }
+.rules-doc .rules-outcomes .rules-hot td { background: rgba(47, 217, 119, 0.08); }
+.rules-doc .rules-outcomes .rules-hot td:last-child b { color: var(--rl-good); }
+
+/* Keys: one block per phase, side by side where there's room. */
+.rules-doc .rules-keymap {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(10.5em, 1fr));
+  gap: 0.6em; margin-bottom: 0.4em;
+}
+.rules-doc .rules-phase {
+  background: rgba(0, 0, 0, 0.18); border: 1px solid var(--rl-line);
+  border-radius: 14px; padding: 0.7em 0.8em;
+}
+.rules-doc .rules-phase h3 { color: var(--rl-gold); font-size: 0.95em; margin-bottom: 0.4em; }
+.rules-doc .rules-keylist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.3em; }
+.rules-doc .rules-keylist li { display: grid; grid-template-columns: 4.4em minmax(0, 1fr); gap: 0.5em; font-size: 0.92em; line-height: 1.4; }
+.rules-doc .rules-keylist li > span:first-child { white-space: nowrap; }
+
+/* Phones: the token table's explanation drops under its name and cost. */
+@container (max-width: 640px) {
+  .rules-doc .rules-tokens tr:not(.rules-th) { display: grid; grid-template-columns: 1fr auto; border-top: 1px solid var(--rl-line); }
+  .rules-doc .rules-tokens tr:not(.rules-th) > * { border-top: 0; }
+  .rules-doc .rules-tokens tr:not(.rules-th) td:last-child { grid-column: 1 / -1; padding-top: 0; }
+  .rules-doc .rules-outcomes td:nth-child(-n+2) { width: 3.2em; }
+  .rules-doc .rules-outcomes thead th { letter-spacing: 0.06em; }
+}
+
+/* ---------- the in-game dialog ---------- */
+.modal.rules-modal { z-index: 55; padding: clamp(10px, 3vh, 36px) clamp(10px, 3vw, 36px); }
+.modal .modal-card.rules-card {
+  width: 100%;
+  max-width: min(1560px, 100%);
+  max-height: 100%;
+  display: flex; flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  animation: rules-pop 0.2s ease-out;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+@keyframes rules-pop { from { transform: scale(0.97); opacity: 0; } }
+.rules-card-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 16px clamp(16px, 2vw, 26px);
+  border-bottom: 1px solid var(--line, rgba(255, 255, 255, 0.12));
+}
+.rules-card-head h2 {
+  font-size: clamp(22px, 1.8vw, 32px); font-weight: 800; margin: 0;
+  background: linear-gradient(90deg, var(--accent, #ff2d78), var(--accent2, #8a5cff));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.rules-card-head .rules-close { flex: 0 0 auto; width: 44px; height: 44px; font-size: 18px; }
+.rules-card-body {
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: clamp(14px, 1.6vw, 24px) clamp(14px, 2vw, 26px) clamp(16px, 2vw, 26px);
+}
+.rules-card-body:focus { outline: none; }
+.rules-card-foot { display: flex; justify-content: center; margin-top: 18px; }
+.rules-card-foot .primary-btn { min-width: 10em; font-size: 17px; padding: 13px 28px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .modal .modal-card.rules-card { animation: none; }
+}

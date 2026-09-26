@@ -1,0 +1,342 @@
+/*
+ * Online edition only (tools/build-site.js copies this to site/site.css and
+ * loads it after styles.css and rules.css): the start screen, the rules page
+ * and the site's top bar.
+ */
+
+/* ---------- top bar ---------- */
+/* The splash carries the title and the rules page has its own header. The
+   game hides the bar itself in styles.css; it's repeated here so the site's
+   own chrome never depends on that. */
+body:has(#screen-start.active) .topbar,
+body:has(#screen-rules.active) .topbar,
+body:has(#screen-when.active) .topbar { display: none; }
+
+.topbar a.brand { color: inherit; text-decoration: none; border-radius: 10px; }
+.topbar .topbar-rules {
+  font-size: 15px; padding: 9px 16px; border-radius: 999px;
+  color: var(--text); background: var(--card);
+}
+
+#screen-start :focus-visible,
+#screen-rules :focus-visible,
+.topbar :focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+
+/* ---------- start screen ---------- */
+#screen-start {
+  max-width: none;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: clamp(20px, 5vh, 64px) 16px clamp(14px, 2.6vh, 30px);
+  justify-content: space-between;
+  gap: clamp(18px, 3vh, 36px);
+  position: relative;
+  overflow-x: clip;
+  --st-w: clamp(74px, min(8.4vw, 14vh), 176px);   /* one motif card */
+}
+/* A soft stage light behind the title and the timeline. */
+#screen-start::before {
+  content: '';
+  position: absolute; left: 50%; top: 46%;
+  width: min(1500px, 130vw); height: min(900px, 90vh);
+  transform: translate(-50%, -50%);
+  background:
+    radial-gradient(closest-side at 50% 58%, rgba(255, 45, 120, 0.2), transparent 70%),
+    radial-gradient(closest-side at 50% 30%, rgba(138, 92, 255, 0.22), transparent 75%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.start-main {
+  flex: 1;
+  width: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+}
+
+.start-eyebrow {
+  font-size: clamp(12px, min(1.05vw, 1.9vh), 20px);
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: #ffe08a;
+  margin-bottom: clamp(8px, 1.6vh, 18px);
+  text-wrap: balance;
+}
+
+#screen-start .start-title {
+  font-size: clamp(52px, min(8.4vw, 14.5vh), 176px);
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  margin: 0;
+  padding: 0 0.04em 0.1em;   /* room for the gradient's descenders and the "?" */
+  background: linear-gradient(90deg, var(--accent) 10%, #c23cf0 55%, var(--accent2) 90%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 10px 42px rgba(255, 45, 120, 0.3));
+  text-wrap: balance;
+}
+
+.start-pitch {
+  font-size: clamp(18px, min(1.75vw, 3.1vh), 34px);
+  line-height: 1.35;
+  font-weight: 600;
+  max-width: 32em;
+  margin-top: clamp(6px, 1.2vh, 14px);
+  text-wrap: balance;
+}
+
+/* ---------- the motif: a timeline with a "?" gap holding the record ---------- */
+.start-motif {
+  position: relative;
+  width: 100%;
+  max-width: 1500px;
+  margin: clamp(22px, 5vh, 60px) 0 clamp(22px, 4.6vh, 56px);
+}
+.motif-rail {
+  position: absolute; left: 0; right: 0; top: 50%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2) 18%, rgba(255, 255, 255, 0.2) 82%, transparent);
+}
+.motif-line {
+  position: relative;
+  display: flex; justify-content: center; align-items: stretch;
+  gap: clamp(8px, 1.2vw, 24px);
+}
+.motif-card {
+  width: var(--st-w);
+  padding: calc(var(--st-w) * 0.075);
+  border-radius: calc(var(--st-w) * 0.11);
+  background: rgba(34, 22, 56, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.35);
+  animation: motif-float 5.5s ease-in-out infinite alternate;
+}
+.motif-card i {
+  display: block;
+  aspect-ratio: 1;
+  border-radius: calc(var(--st-w) * 0.07);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.55) 0 4%, rgba(0, 0, 0, 0.2) 4.5% 26%, transparent 26.5%),
+    linear-gradient(135deg, hsl(var(--h) 72% 58%), hsl(calc(var(--h) + 45) 66% 34%));
+}
+.motif-card b {
+  display: block;
+  margin-top: calc(var(--st-w) * 0.05);
+  font-size: calc(var(--st-w) * 0.2);
+  line-height: 1.15;
+  font-weight: 800;
+  color: #ffe08a;
+  font-variant-numeric: tabular-nums;
+}
+.motif-card span {
+  display: block;
+  font-size: max(11px, calc(var(--st-w) * 0.085));
+  color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.motif-card.m1 { animation-delay: -1.2s; }
+.motif-card.m2 { animation-delay: -3.4s; }
+.motif-card.m3 { animation-delay: -0.4s; }
+.motif-card.m4 { animation-delay: -2.6s; }
+.motif-card.m5 { animation-delay: -4.8s; }
+
+.motif-gap {
+  width: calc(var(--st-w) * 1.08);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: calc(var(--st-w) * 0.1);
+  border: 2px solid var(--accent);
+  border-radius: calc(var(--st-w) * 0.11);
+  background: radial-gradient(circle at 50% 42%, rgba(255, 45, 120, 0.34), rgba(138, 92, 255, 0.16) 72%), rgba(20, 12, 36, 0.8);
+  box-shadow: 0 0 44px rgba(255, 45, 120, 0.45), inset 0 0 24px rgba(255, 45, 120, 0.22);
+  animation: motif-glow 2.8s ease-in-out infinite alternate;
+}
+/* Only the grooves turn: a spinning "?" would be unreadable. The sheen is
+   what makes the turning visible on a record that's otherwise symmetric. */
+.motif-disc {
+  position: relative;
+  width: calc(var(--st-w) * 0.7);
+  aspect-ratio: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.motif-disc::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  background:
+    conic-gradient(from 20deg, transparent 0 8%, rgba(255, 255, 255, 0.14) 13%, transparent 20% 58%, rgba(255, 255, 255, 0.1) 63%, transparent 70%),
+    repeating-radial-gradient(circle at center, #101018 0 2px, #232336 2px 4px);
+  border: 3px solid #05050a;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.55);
+  animation: spin 3.2s linear infinite;
+}
+.motif-disc span {
+  position: relative;
+  width: 42%; aspect-ratio: 1; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900; font-size: calc(var(--st-w) * 0.15); color: #fff;
+}
+.motif-eq {
+  display: flex; align-items: flex-end; gap: calc(var(--st-w) * 0.035);
+  height: calc(var(--st-w) * 0.2);
+}
+.motif-eq i {
+  width: calc(var(--st-w) * 0.055);
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(180deg, var(--accent), var(--accent2));
+  transform-origin: bottom;
+  animation: eq 0.95s ease-in-out infinite;
+}
+.motif-eq i:nth-child(1) { animation-delay: 0s; }
+.motif-eq i:nth-child(2) { animation-delay: 0.22s; }
+.motif-eq i:nth-child(3) { animation-delay: 0.4s; }
+.motif-eq i:nth-child(4) { animation-delay: 0.12s; }
+.motif-eq i:nth-child(5) { animation-delay: 0.3s; }
+
+@keyframes motif-float {
+  from { transform: translateY(-5px); }
+  to { transform: translateY(5px); }
+}
+@keyframes motif-glow {
+  from { box-shadow: 0 0 26px rgba(255, 45, 120, 0.3), inset 0 0 16px rgba(255, 45, 120, 0.16); }
+  to { box-shadow: 0 0 56px rgba(255, 45, 120, 0.55), inset 0 0 28px rgba(255, 45, 120, 0.28); }
+}
+
+/* ---------- the two choices ---------- */
+.start-actions {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: clamp(12px, 1.4vw, 26px);
+}
+.start-actions button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.6em;
+  font-size: clamp(19px, min(1.75vw, 3.1vh), 34px);
+  font-weight: 800;
+  padding: 0.62em 1.5em;
+  min-height: 56px;
+  border-radius: 0.72em;
+}
+.start-actions .start-play {
+  min-width: 8.6em;
+  box-shadow: 0 14px 44px rgba(255, 45, 120, 0.38);
+}
+.start-actions .start-rules {
+  min-width: 6.4em;
+  color: var(--text);
+  border: 2px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.05);
+}
+.start-actions .start-rules:hover { border-color: var(--accent2); background: rgba(138, 92, 255, 0.14); }
+.start-actions kbd {
+  font-size: 0.48em; font-weight: 600;
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: inherit;
+}
+
+.start-meta {
+  margin-top: clamp(14px, 2.6vh, 30px);
+  font-size: clamp(14px, min(1.15vw, 2.1vh), 22px);
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  text-wrap: balance;
+}
+.start-meta span { white-space: nowrap; }
+
+.start-credit {
+  max-width: 62em;
+  text-align: center;
+  font-size: clamp(12px, min(0.8vw, 1.5vh), 15px);
+  line-height: 1.5;
+  color: var(--muted);
+  opacity: 0.85;
+}
+.start-credit a { color: var(--accent2); }
+.start-credit a:hover { color: var(--text); }
+
+/* A gentle entrance, one line after another. */
+.start-main > * { animation: start-in 0.6s ease-out both; }
+.start-main > :nth-child(2) { animation-delay: 0.06s; }
+.start-main > :nth-child(3) { animation-delay: 0.12s; }
+.start-main > :nth-child(4) { animation-delay: 0.18s; }
+.start-main > :nth-child(5) { animation-delay: 0.24s; }
+.start-main > :nth-child(6) { animation-delay: 0.3s; }
+@keyframes start-in { from { opacity: 0; transform: translateY(12px); } }
+
+/* Touch screens have no keyboard to hint at. */
+@media (hover: none) and (pointer: coarse) {
+  .start-actions kbd { display: none; }
+}
+
+/* Tablets held upright: width is the limit, not height, so size by it. */
+@media (min-width: 601px) and (orientation: portrait) {
+  #screen-start { --st-w: clamp(74px, 11vw, 150px); }
+  #screen-start .start-title { font-size: clamp(52px, 10.5vw, 150px); }
+  .start-pitch, .start-actions button { font-size: clamp(18px, 2.7vw, 34px); }
+  .start-eyebrow, .start-meta { font-size: clamp(13px, 1.9vw, 22px); }
+}
+
+/* Phones: fewer cards, full-width choices. */
+@media (max-width: 600px) {
+  #screen-start { --st-w: clamp(66px, 19.5vw, 86px); }
+  .motif-card.m1, .motif-card.m5 { display: none; }
+  .motif-line { gap: 8px; }
+  .start-actions { width: 100%; max-width: 420px; }
+  .start-actions button { flex: 1 1 0; min-width: 0; padding: 0.7em 0.8em; }
+  .start-actions .start-play { flex-grow: 1.5; }
+}
+
+/* ---------- rules page ---------- */
+#screen-rules {
+  max-width: min(1680px, 100%);
+  padding: clamp(14px, 3vh, 36px) clamp(16px, 3vw, 48px) 56px;
+}
+.rules-bar {
+  width: 100%;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px;
+  margin-bottom: clamp(16px, 3vh, 32px);
+}
+.rules-bar > button {
+  flex: 0 0 auto;
+  font-size: clamp(16px, 1.2vw, 22px);
+  padding: 0.6em 1.25em;
+  min-height: 48px;
+}
+.rules-bar .ghost-btn { color: var(--text); }
+.rules-heading { flex: 1; min-width: 0; text-align: center; }
+.rules-kicker {
+  font-size: clamp(13px, 1vw, 18px);
+  font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  display: inline-block;
+}
+#screen-rules #rules-title {
+  font-size: clamp(30px, min(3.6vw, 6.5vh), 64px);
+  line-height: 1.05;
+  margin: 2px 0 0;
+}
+#rules-title:focus { outline: none; }
+.rules-page { width: 100%; }
+.rules-bar-end { justify-content: center; margin: clamp(22px, 4vh, 44px) 0 0; }
+
+@media (max-width: 600px) {
+  .rules-bar { flex-wrap: wrap; }
+  .rules-heading { order: -1; flex-basis: 100%; }
+  .rules-bar > button { flex: 1 1 0; }
+  .rules-bar-end > button { flex: 1 1 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .start-main > *, .motif-card, .motif-gap, .motif-disc::before, .motif-eq i { animation: none; }
+  .motif-eq i:nth-child(1) { transform: scaleY(0.45); }
+  .motif-eq i:nth-child(2) { transform: scaleY(0.85); }
+  .motif-eq i:nth-child(3) { transform: scaleY(1); }
+  .motif-eq i:nth-child(4) { transform: scaleY(0.6); }
+  .motif-eq i:nth-child(5) { transform: scaleY(0.75); }
+}

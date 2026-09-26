@@ -3,51 +3,117 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="A party game for two or three teams: hear a song, place it on your timeline.">
 <title>When's that tune?</title>
-<link rel="stylesheet" href="styles.css">
+<meta name="description" content="A music party game for 2–3 teams on one shared screen. Hear a song. Guess when it came out. Build your timeline — and steal your rivals’ cards.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="When's that tune?">
+<meta property="og:description" content="A music party game for 2–3 teams on one shared screen. Hear a song. Guess when it came out. Build your timeline — and steal your rivals’ cards.">
+<meta name="theme-color" content="#170d2a">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%F0%9F%95%B0%EF%B8%8F%3C%2Ftext%3E%3C%2Fsvg%3E">
+<link rel="stylesheet" href="styles.css?v=03f57607">
+<link rel="stylesheet" href="rules.css?v=fa92a8f4">
+<link rel="stylesheet" href="site.css?v=14821da0">
 </head>
 <body>
 
 <header class="topbar">
-  <div class="brand">🕰 <span>When's&nbsp;that&nbsp;tune?</span></div>
+  <a id="site-home" class="brand" href="./">🕰 <span>When's&nbsp;that&nbsp;tune?</span></a>
+  <div class="topbar-right">
+    <button id="btn-site-rules" class="ghost-btn topbar-rules" type="button">? Rules</button>
+  </div>
 </header>
 
-<section id="screen-teams" class="screen active">
-  <h1>Two or three teams</h1>
-  <p class="subtitle">Hear a song, place it on your timeline. First team to fill their timeline wins. Leave Team 3 empty for a two-team game.</p>
-  <div class="setup-form">
-    <label class="setup-row"><span>🅰</span><input id="team-0" type="text" maxlength="16" placeholder="Team 1" autocomplete="off"></label>
-    <label class="setup-row"><span>🅱</span><input id="team-1" type="text" maxlength="16" placeholder="Team 2" autocomplete="off"></label>
-    <label class="setup-row"><span>🅲</span><input id="team-2" type="text" maxlength="16" placeholder="Team 3 (optional)" autocomplete="off"></label>
-    <label class="setting">
-      <span>Cards to win</span>
-      <select id="set-target">
-        <option value="10">10 (quick)</option>
-        <option value="15">15</option>
-        <option value="20" selected>20 (standard)</option>
-        <option value="25">25 (long haul)</option>
-      </select>
-    </label>
-    <div class="setup-buttons">
-      <button id="btn-teams-start" class="primary-btn">Start game ▸</button>
+<!-- START: the online edition's front door -->
+<section id="screen-start" class="screen active" aria-labelledby="start-title">
+  <div class="start-main">
+    <p class="start-eyebrow">A music party game for one big screen</p>
+    <h1 id="start-title" class="start-title">When’s that&nbsp;tune?</h1>
+    <p class="start-pitch">Hear a song. Guess when it came out. Build your timeline — and steal your rivals’ cards.</p>
+
+    <div class="start-motif" aria-hidden="true">
+      <div class="motif-rail"></div>
+      <div class="motif-line">
+        <div class="motif-card m1" style="--h:28"><i></i><b>1958</b><span>Johnny B. Goode</span></div>
+        <div class="motif-card m2" style="--h:330"><i></i><b>1967</b><span>Respect</span></div>
+        <div class="motif-card m3" style="--h:195"><i></i><b>1983</b><span>Billie Jean</span></div>
+        <div class="motif-gap">
+          <div class="motif-disc"><span>?</span></div>
+          <div class="motif-eq"><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+        <div class="motif-card m4" style="--h:140"><i></i><b>1995</b><span>Wonderwall</span></div>
+        <div class="motif-card m5" style="--h:265"><i></i><b>2014</b><span>Uptown Funk</span></div>
+      </div>
     </div>
+
+    <div class="start-actions">
+      <button id="btn-start-play" class="primary-btn start-play" type="button">▶ Play <kbd>Enter</kbd></button>
+      <button id="btn-start-rules" class="ghost-btn start-rules" type="button">Rules <kbd>R</kbd></button>
+    </div>
+    <p class="start-meta"><span>2–3 teams ·</span> <span>one shared screen ·</span> <span>400+ songs, 1950s–now</span></p>
   </div>
-  <details class="rules">
-    <summary>How it works</summary>
-    <ul>
-      <li>The active team hears a song and drops it into a gap in <i>their</i> timeline.</li>
-      <li>Right → the card joins their timeline. Wrong → nobody gets it.</li>
-      <li>🎟 <b>Tokens</b>: each team starts with 2. Spend one to <b>skip</b> a song and get a different one (it's still your turn), or to <b>challenge</b> another team's placement — a correct challenge steals the card.</li>
-      <li>On your turn, trade <b>🎟 3</b> for a <b>free card</b>: it goes straight into your timeline, no guessing — and you still play your song.</li>
-      <li>Name both the title <i>and</i> the artist out loud to earn a token back.</li>
-    </ul>
-  </details>
-  <p class="hint centered credit">
+
+  <footer class="start-credit">
     Songs play as official 30-second preview clips from
-    <a href="https://music.apple.com" target="_blank" rel="noopener">Apple Music</a>
-    — every reveal links to the full track. All music belongs to its rights holders.
-  </p>
+    <a href="https://music.apple.com" target="_blank" rel="noopener">Apple Music</a>,
+    and every reveal links to the full track. All music belongs to its rights holders.
+  </footer>
+</section>
+
+
+<!-- RULES: the full rules as a page (the content comes from public/rules.js) -->
+<section id="screen-rules" class="screen" aria-labelledby="rules-title">
+  <div class="rules-bar">
+    <button id="btn-rules-back" class="ghost-btn" type="button">← Back</button>
+    <div class="rules-heading">
+      <p class="rules-kicker">When’s that tune?</p>
+      <h1 id="rules-title" tabindex="-1">How to play</h1>
+    </div>
+    <button id="btn-rules-play" class="primary-btn" type="button">▶ Play</button>
+  </div>
+
+  <div id="rules-page" class="rules-page"></div>
+
+  <div class="rules-bar rules-bar-end">
+    <button id="btn-rules-back-end" class="ghost-btn" type="button">← Back</button>
+    <button id="btn-rules-play-end" class="primary-btn" type="button">▶ Play</button>
+  </div>
+</section>
+
+
+<section id="screen-teams" class="screen">
+  <h1>Two or three teams</h1>
+  <p class="subtitle">Name your teams and choose how many cards win. Leave Team 3 empty for a two-team game.</p>
+  <div class="teams-layout">
+    <div class="setup-form">
+      <label class="setup-row team-row t0"><span class="team-num" aria-hidden="true">1</span><input id="team-0" type="text" maxlength="16" placeholder="Team 1" autocomplete="off" aria-label="Team 1 name"></label>
+      <label class="setup-row team-row t1"><span class="team-num" aria-hidden="true">2</span><input id="team-1" type="text" maxlength="16" placeholder="Team 2" autocomplete="off" aria-label="Team 2 name"></label>
+      <label class="setup-row team-row t2"><span class="team-num" aria-hidden="true">3</span><input id="team-2" type="text" maxlength="16" placeholder="Team 3 (optional)" autocomplete="off" aria-label="Team 3 name (optional)"></label>
+      <label class="setting">
+        <span>Cards to win</span>
+        <select id="set-target">
+          <option value="10">10 (quick)</option>
+          <option value="15">15</option>
+          <option value="20" selected>20 (standard)</option>
+          <option value="25">25 (long haul)</option>
+        </select>
+      </label>
+      <div class="setup-buttons">
+        <button id="btn-teams-start" class="primary-btn">Start game ▸</button>
+        <button id="btn-teams-back" class="ghost-btn">← Back</button>
+      </div>
+    </div>
+    <aside class="how-to" aria-labelledby="how-title">
+      <h2 id="how-title">How to play</h2>
+      <ol class="how-steps">
+        <li><span class="how-ico" aria-hidden="true">🎧</span><p><b>Listen.</b> A song plays, a 30-second preview.</p></li>
+        <li><span class="how-ico" aria-hidden="true">📍</span><p><b>Place it</b> in the gap of <i>your</i> timeline where you think it belongs. Right: the card is yours. Wrong: it's discarded, unless a rival challenges and steals it.</p></li>
+        <li><span class="how-ico" aria-hidden="true">🎟</span><p><b>Tokens.</b> Every team starts with 2. Spend 1 to skip a song or to challenge a rival's pick, or 3 to buy a card. Name the title and artist before the reveal: +1.</p></li>
+        <li><span class="how-ico" aria-hidden="true">🏆</span><p><b>First to <span id="how-target">20</span> cards wins.</b> <span id="how-first">First up: Team 1</span></p></li>
+      </ol>
+      <button id="btn-teams-rules" class="ghost-btn how-rules" type="button">📖 Read the rules</button>
+    </aside>
+  </div>
 </section>
 
 <section id="screen-loading" class="screen">
@@ -56,96 +122,156 @@
 </section>
 
 <section id="screen-when" class="screen">
-  <div class="game-top">
-    <button id="btn-hit-quit" class="ghost-btn">← Quit</button>
-    <span class="badge">🕰 When's that tune?</span>
-    <span id="hit-target" class="round-chip"></span>
-  </div>
+  <!-- header: quit, the scoreboard, and the tools (no ⚙️: both settings
+       are the Voice Quiz's) -->
+  <header class="wt-head">
+    <button id="btn-hit-quit" class="ghost-btn wt-quit">← Quit</button>
+    <p id="hit-target" class="wt-target"></p>
+    <div id="hit-teams" class="scoreboard" role="list" aria-label="Scoreboard"></div>
+    <div class="wt-tools">
+      <button id="btn-hit-rules" class="ghost-btn wt-rules" aria-label="Rules"><span aria-hidden="true">?</span><span class="wt-rules-word" aria-hidden="true"> Rules</span></button>
+      <label class="wt-volume"><span aria-hidden="true">🔉</span><input id="hit-volume" type="range" min="0" max="100" value="80" aria-label="Volume"></label>
+    </div>
+  </header>
 
-  <div id="hit-teams" class="team-strip"></div>
-
-  <div class="stage stage-compact">
-    <div class="stage-play">
-      <div class="disc">
-        <div class="disc-label">?</div>
-      </div>
-      <div class="equalizer paused">
-        <span></span><span></span><span></span><span></span><span></span>
+  <!-- hero: the record, whose turn, and the question. Once a pick is locked
+       in it becomes the challenge band (.banded): the ask, then the pick. -->
+  <div class="wt-hero">
+    <div id="hit-record" class="wt-record">
+      <svg class="wt-ring" viewBox="0 0 100 100" aria-hidden="true">
+        <circle class="wt-ring-track" cx="50" cy="50" r="46"></circle>
+        <circle id="hit-ring" class="wt-ring-fill" cx="50" cy="50" r="46" pathLength="100"></circle>
+      </svg>
+      <div class="disc"><div class="disc-label">?</div></div>
+      <button id="btn-hit-playgate" class="wt-playgate hidden"><span class="wt-play-icon" aria-hidden="true">▶</span>Tap to play</button>
+    </div>
+    <div class="equalizer paused" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <span class="wt-playstate" aria-hidden="true"></span>
+    <div class="wt-turn">
+      <p class="wt-who"><span id="hit-who" class="wt-team"></span><span id="hit-turn-pill" class="wt-pill"></span></p>
+      <div class="wt-ask">
+        <p id="hit-prompt" class="wt-q" aria-live="polite"></p>
+        <span id="hit-range" class="range-pill quiet"></span>
+        <span id="hit-mic" class="mic-chip">🎤 Shout title + artist for 🎟 +1</span>
       </div>
     </div>
-    <button id="btn-hit-playgate" class="primary-btn hidden">▶ Play snippet</button>
-  </div>
-
-  <p id="hit-prompt" class="hit-prompt"></p>
-  <div id="hit-timeline" class="timeline"></div>
-
-  <div class="guess-buttons">
-    <button id="btn-hit-confirm" class="primary-btn" disabled>Lock it in ▸</button>
-    <button id="btn-hit-replay" class="ghost-btn">🔁 Replay <kbd>space</kbd></button>
-    <button id="btn-hit-skip" class="ghost-btn">⏭ Skip song (🎟 1)</button>
-    <button id="btn-hit-buy" class="ghost-btn" title="Deal a card face up straight into your timeline — you still play this song">🃏 Buy a card (🎟 3)</button>
-  </div>
-
-  <div class="volume-row">
-    🔉 <input id="hit-volume" type="range" min="0" max="100" value="80">
-  </div>
-
-  <!-- challenge prompt -->
-  <div id="hit-challenge" class="reveal hidden">
-    <div class="reveal-card narrow">
-      <div class="reveal-info">
-        <h2 id="challenge-title">Challenge?</h2>
-        <p id="challenge-text" class="hint"></p>
-        <div id="challenge-timeline" class="timeline mini"></div>
-        <div id="challenge-tokens" class="token-row"></div>
-        <div class="setup-buttons">
-          <span id="challenge-rivals" class="challenge-rivals"></span>
-          <button id="btn-challenge-no" class="ghost-btn">Let it stand</button>
-        </div>
-      </div>
+    <!-- the challenge band: one slot per team, each under that team's tile
+         (alignBand in when.js), then "Let it stand" -->
+    <div id="hit-band" class="wt-band hidden">
+      <h2 id="challenge-title" class="band-title" tabindex="-1"></h2>
+      <p id="challenge-text" class="band-text"></p>
+      <div id="challenge-rivals" class="band-slots"></div>
     </div>
   </div>
 
-  <!-- reveal -->
-  <div id="hit-reveal" class="reveal hidden">
-    <div class="reveal-card">
-      <img id="hit-art" alt="Album artwork">
-      <div class="reveal-info">
-        <p class="reveal-was">It was…</p>
-        <h2 id="hit-year" class="year-big"></h2>
-        <h3 id="hit-song"></h3>
-        <a id="hit-am-link" class="am-link" target="_blank" rel="noopener">Listen on Apple Music ↗</a>
-        <p id="hit-verdict" class="hit-verdict"></p>
-        <div id="hit-bonus" class="bonus-row">
-          <span id="hit-bonus-q"></span>
-          <button id="btn-bonus-yes" class="chip-btn">Yes 🎟 +1</button>
-          <button id="btn-bonus-no" class="chip-btn">No</button>
+  <!-- the active team's timeline, wrapped into rows (layoutTimeline in when.js) -->
+  <div id="hit-board" class="wt-board">
+    <div class="wt-board-inner">
+      <p id="hit-caption" class="tl-caption"></p>
+      <div id="hit-timeline" class="wt-line"></div>
+    </div>
+  </div>
+
+  <!-- the reveal: in place of the turn line and the timeline, under the live
+       scoreboard. The song, the outcome, where the card belonged in the
+       placing team's line (revealStripHTML in when.js), the name-it bonus.
+       (A div, not a section element: tools/build-site.js lifts #screen-when
+       out up to the first closing section tag after it.) -->
+  <div id="hit-reveal" class="wt-reveal hidden" role="region" aria-labelledby="hit-verdict">
+    <div id="hit-reveal-card" class="rv-card">
+      <div class="rv-top">
+        <img id="hit-art" class="rv-art" alt="">
+        <div class="rv-id">
+          <p class="rv-was">It was…</p>
+          <div class="rv-song">
+            <p id="hit-year" class="rv-year"></p>
+            <div class="rv-name">
+              <p id="hit-title" class="rv-title"></p>
+              <p id="hit-artist" class="rv-artist"></p>
+              <a id="hit-am-link" class="am-link rv-am" target="_blank" rel="noopener">Listen on Apple Music ↗</a>
+            </div>
+          </div>
         </div>
-        <div class="setup-buttons">
-          <button id="btn-hit-next" class="primary-btn">Next team ▸</button>
-          <button id="btn-hit-buy-reveal" class="ghost-btn hidden">🃏 Buy a card (🎟 3)</button>
-        </div>
-        <div id="hit-reveal-tokens" class="token-row"></div>
+        <h2 id="hit-verdict" class="rv-head" tabindex="-1"></h2>
+        <p id="hit-clauses" class="rv-clauses"></p>
+      </div>
+      <div class="rv-where">
+        <p id="hit-strip-cap" class="rv-cap"></p>
+        <div id="hit-strip" class="rv-strip"></div>
+      </div>
+      <div class="rv-foot">
+        <button id="btn-hit-bonus" class="rv-bonus" aria-pressed="false"></button>
+        <p id="hit-dest" class="rv-dest"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- action bar: token moves · the primary action · replay. On the reveal:
+       Buy · Play it again (where Lock was) · Next (where Replay was). -->
+  <footer class="wt-bar">
+    <div class="wt-bar-left">
+      <span class="wt-bar-label" aria-hidden="true">Token<br>moves</span>
+      <button id="btn-hit-skip" class="ghost-btn"></button>
+      <button id="btn-hit-buy" class="ghost-btn" title="A card is dealt face up straight into your timeline — you still play this song"></button>
+      <button id="btn-hit-cancel-challenge" class="ghost-btn hidden">✕ Not a challenge <kbd>Esc</kbd></button>
+    </div>
+    <div class="wt-bar-mid">
+      <button id="btn-hit-confirm" class="primary-btn wt-primary" disabled></button>
+      <button id="btn-hit-replay-reveal" class="ghost-btn wt-again hidden"><span class="equalizer paused" aria-hidden="true"><span></span><span></span><span></span></span>🔁 Play it again <kbd>R</kbd></button>
+    </div>
+    <div class="wt-bar-right">
+      <button id="btn-hit-replay" class="ghost-btn">🔁 Replay <kbd>R</kbd></button>
+      <button id="btn-hit-next" class="primary-btn wt-next hidden"></button>
+    </div>
+  </footer>
+
+  <!-- the turn banner: after Next, "Bass Face, you're up" for 1.2 s over the
+       next team's board; it takes every stray click, then their song starts -->
+  <div id="hit-banner" class="wt-banner hidden" aria-hidden="true"><p id="hit-banner-text" class="bn-text"></p></div>
+
+  <!-- quit asks first: the standings, then keep playing (Esc), end here, or leave -->
+  <div id="hit-quit-dialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="hit-quit-title" aria-describedby="hit-quit-text">
+    <div class="modal-card quit-card">
+      <h2 id="hit-quit-title">End the game?</h2>
+      <p id="hit-quit-text" class="quit-text"></p>
+      <ol id="hit-quit-standings" class="standings no-bars" aria-label="Standings"></ol>
+      <div class="quit-buttons">
+        <button id="btn-quit-keep" class="primary-btn" data-close>Keep playing <kbd>Esc</kbd></button>
+        <button id="btn-quit-end" class="ghost-btn">End here: show the standings</button>
+        <button id="btn-quit-menu" class="ghost-btn quit-menu">Quit to menu</button>
       </div>
     </div>
   </div>
 </section>
 
 <section id="screen-when-results" class="screen">
-  <h1 id="hit-winner">🏆</h1>
-  <div id="hit-final"></div>
-  <div class="results-buttons">
-    <button id="btn-hit-again" class="primary-btn">Rematch</button>
-    <button id="btn-hit-home" class="ghost-btn">Back to menu</button>
+  <div class="fin-head">
+    <h1 id="hit-winner" class="fin-title">🏆</h1>
+    <p id="hit-margin" class="fin-margin"></p>
   </div>
+  <div class="fin-top">
+    <div class="fin-main">
+      <ol id="hit-standings" class="standings" aria-label="Final standings"></ol>
+      <div class="fin-buttons">
+        <button id="btn-hit-again" class="primary-btn fin-again">Rematch</button>
+        <button id="btn-hit-home" class="ghost-btn fin-home">Back to menu</button>
+      </div>
+    </div>
+    <ul id="hit-story" class="fin-story" aria-label="How the game went"></ul>
+  </div>
+  <h2 class="fin-cap">How they got there · every card, oldest → newest</h2>
+  <div id="hit-final" class="fin-lines"></div>
 </section>
 
 <div id="toast" class="toast hidden"></div>
 
-<script src="ui.js"></script>
-<script src="timeline.js"></script>
-<script src="audio.js"></script>
-<script src="when.js"></script>
-<script src="site.js"></script>
+<script src="ui.js?v=a6a97734"></script>
+<script src="timeline.js?v=aa317177"></script>
+<script src="audio.js?v=963ef3ff"></script>
+<script src="rules.js?v=37c5ea40"></script>
+<script src="when.js?v=3fa871ac"></script>
+<script src="site.js?v=4060ec1d"></script>
 </body>
 </html>
