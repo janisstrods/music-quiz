@@ -65,6 +65,7 @@ input:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outl
 .pill[data-kind="ok"]::before { background: var(--good); }
 .pill[data-kind="wait"]::before { background: var(--warn); animation: pulse 1.2s infinite; }
 .pill[data-kind="bad"]::before { background: var(--bad); }
+.pill[data-kind="warn"]::before { background: var(--warn); }
 @keyframes pulse { 50% { opacity: 0.3; } }
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 12px; }
 .fact { background: rgba(0, 0, 0, 0.2); border-radius: 10px; padding: 8px 12px; }
@@ -169,6 +170,17 @@ input:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outl
   </div>
 </section>
 
+<div class="card" style="margin-top:16px">
+  <h2>This computer’s network</h2>
+  <div id="net-verdict" class="pill" data-kind="wait">Checking…</div>
+  <p id="net-detail" class="small" style="margin-top:8px"></p>
+  <div class="row" style="margin-top:12px">
+    <button id="btn-recheck" type="button">Check again</button>
+    <button id="btn-report" type="button">Copy report</button>
+  </div>
+  <p class="small" style="margin-top:10px">Check this on both computers. “Copy report” copies this result and the log, to paste into a chat.</p>
+</div>
+
 </main>
 
 <script src="peerjs-1.5.5.min.js"></script>
@@ -263,6 +275,118 @@ input:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outl
     return 'Direct over the internet';
   }
 
+  // Why a link didn't open: which kinds of address each side offered (host =
+  // on its own network, srflx = its public address, relay = via a relay) and
+  // how many of the routes between them were tried and worked.
+  async function iceReport(conn) {
+    const pc = conn.peerConnection;
+    if (!pc) return ['No connection details (the other side never answered)'];
+    const stats = await pc.getStats();
+    const mine = new Set(), theirs = new Set();
+    let pairs = 0, worked = 0;
+    stats.forEach(s => {
+      if (s.type === 'local-candidate') mine.add(s.candidateType);
+      if (s.type === 'remote-candidate') theirs.add(s.candidateType);
+      if (s.type === 'candidate-pair') { pairs++; if (s.state === 'succeeded') worked++; }
+    });
+    const list = set => [...set].join(', ') || 'none';
+    const lines = [`Details: link ${pc.iceConnectionState}; this side offered ${list(mine)}; the other side offered ${list(theirs)}; ${worked} of ${pairs} routes worked`];
+    // With no addresses of our own, the other side's never get paired up, so
+    // they can't be judged.
+    if (!mine.size) return [...lines, 'This computer offered no addresses at all: its network or browser blocks this kind of traffic.'];
+    if (!theirs.size) lines.push('No addresses arrived from the other computer.');
+    else if (!theirs.has('srflx')) lines.push('The other computer offered no public address: its network may block this kind of traffic.');
+    if (!mine.has('srflx')) lines.push('This computer found no public address: its network may block this kind of traffic.');
+    return lines;
+  }
+
+  // ---------- this computer's network ----------
+  // Ask three public address servers (STUN) what our address looks like from
+  // outside. None answer: this kind of traffic (UDP) is blocked. They see
+  // different public ports for the same connection: a strict ("symmetric")
+  // NAT, which gives every destination its own port, so the other side can't
+  // aim at us. One port for all: an easy NAT, fine for direct links.
+  const STUN = ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun.cloudflare.com:3478'];
+  let net = { verdict: 'Checking…', detail: '' };
+
+  function setNet(kind, verdict, detail) {
+    net = { kind, verdict, detail };
+    $('net-verdict').dataset.kind = kind;
+    $('net-verdict').textContent = verdict;
+    $('net-detail').textContent = detail;
+  }
+
+  const maskIp = a => a.includes(':') ? a.split(':').slice(0, 2).join(':') + ':…' : a.split('.').slice(0, 2).join('.') + '.x.x';
+
+  async function checkNetwork() {
+    $('btn-recheck').disabled = true;
+    setNet('wait', 'Checking…', '');
+    try {
+      const pc = new RTCPeerConnection({ iceServers: STUN.map(urls => ({ urls })) });
+      const found = [];            // public addresses the servers reported
+      const failed = new Set();    // servers that reported an error…
+      const replied = new Set();   // …and servers that answered (on some address family)
+      let local = 0;
+      pc.onicecandidate = e => {
+        const c = e.candidate && e.candidate.candidate;
+        if (!c) return;
+        const f = c.split(' ');    // foundation component protocol priority address port "typ" type …
+        if (f[2].toLowerCase() !== 'udp') return;
+        if (f[7] === 'host') local++;
+        if (f[7] === 'srflx') { found.push({ addr: f[4], port: f[5] }); if (e.candidate.url) replied.add(e.candidate.url); }
+      };
+      // A failed IPv6 lookup is normal on an IPv4-only network; it doesn't
+      // mean the server didn't answer.
+      pc.onicecandidateerror = e => { if (e.url && !String(e.address || '').includes(':')) failed.add(e.url); };
+      pc.createDataChannel('probe');
+      await pc.setLocalDescription(await pc.createOffer());
+      await new Promise(done => {
+        const t = setTimeout(done, 6000);
+        pc.onicegatheringstatechange = () => { if (pc.iceGatheringState === 'complete') { clearTimeout(t); done(); } };
+      });
+      pc.close();
+
+      const answered = STUN.length - [...failed].filter(u => !replied.has(u)).length;
+      const v4 = found.filter(f => !f.addr.includes(':'));
+      const ports = new Map();   // public address -> the ports seen on it
+      for (const f of v4) (ports.get(f.addr) || ports.set(f.addr, new Set()).get(f.addr)).add(f.port);
+      const portCounts = [...ports.values()].map(s => s.size);
+      const where = v4.length ? `Public address ${[...ports.keys()].map(maskIp).join(', ')}. ` : '';
+      const asked = `${answered} of ${STUN.length} address servers answered.`;
+
+      if (!found.length) {
+        setNet('bad', 'Blocks direct links',
+          `No address server answered${local ? '' : ' and no network interface was found'}, so this network seems to block the traffic direct links use (UDP). ` +
+          'Only a relay running over normal web traffic (TCP port 443) could connect this computer.');
+      } else if (ports.size > 1 || portCounts.some(n => n > 1)) {
+        setNet('warn', 'Strict network (symmetric NAT)',
+          `${where}The address servers saw ${ports.size > 1 ? 'different public addresses' : 'a different public port each'}, so this network gives every destination its own port. ` +
+          `A direct link can still work if the other computer’s network is open; if both are strict, only a relay can connect them. ${asked}`);
+      } else {
+        setNet('ok', 'Open to direct links (easy NAT)',
+          `${where}This network keeps one public port for all destinations, so direct links should work unless the other side blocks them. ` +
+          `${asked}${answered < 2 ? ' (With only one answer this is a best guess.)' : ''}`);
+      }
+      log(`This computer’s network: ${net.verdict}`, net.kind === 'ok' ? 'ok' : 'bad');
+    } catch (e) {
+      setNet('bad', 'Couldn’t check', `The browser refused the test: ${e.message}`);
+    }
+    $('btn-recheck').disabled = false;
+  }
+
+  function report() {
+    const lines = [...$('log').children].map(l => l.textContent).reverse();
+    return [
+      'Online play test report',
+      `Role: ${role ? `${role}, code ${code}` : 'not connected'}`,
+      `Browser: ${navigator.userAgent}`,
+      `Network: ${net.verdict}. ${net.detail}`,
+      '',
+      'Log:',
+      ...lines
+    ].join('\n');
+  }
+
   function heartbeat() {
     for (const link of links.values()) {
       if (!link.conn.open) continue;
@@ -300,7 +424,13 @@ input:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outl
       const cid = (conn.metadata && conn.metadata.cid) || conn.peer;
       if (!guestNames.has(cid)) guestNames.set(cid, `Guest ${++guestSeq}`);
       const name = guestNames.get(cid);
+      const stuck = setTimeout(async () => {
+        if (conn.open) return;
+        log(`${name} found the game, but no direct link opened in 15 s`, 'bad');
+        for (const line of await iceReport(conn)) log(line, 'bad');
+      }, STUCK_MS);
       conn.on('open', () => {
+        clearTimeout(stuck);
         // A guest that reconnects replaces its old, dead link.
         for (const [k, l] of links) if (l.cid === cid) { l.conn.close(); links.delete(k); }
         links.set(conn.peer, { conn, cid, name, rtt: null, route: null, heard: now() });
@@ -431,10 +561,11 @@ input:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outl
     const link = { conn, name: 'Host', rtt: null, route: null, heard: now() };
     // The host answered but no link opened: with PeerJS's relay servers gone
     // (their names no longer resolve), that means a network blocked direct.
-    const stuck = setTimeout(() => {
+    const stuck = setTimeout(async () => {
       if (conn.open) return;
       status('bad', 'Found the game, but couldn’t link up directly');
       log('No direct link after 15 s: one of the networks blocks it, and there is no relay to fall back on', 'bad');
+      for (const line of await iceReport(conn)) log(line, 'bad');
     }, STUCK_MS);
     conn.on('open', () => {
       clearTimeout(stuck);
@@ -586,6 +717,14 @@ input:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outl
     $('btn-resume').classList.remove('hidden');
   }
   if (typeof Peer === 'undefined') log('PeerJS didn’t load', 'bad');
+
+  $('btn-recheck').addEventListener('click', checkNetwork);
+  $('btn-report').addEventListener('click', () => {
+    navigator.clipboard.writeText(report())
+      .then(() => { $('btn-report').textContent = 'Copied ✓'; setTimeout(() => { $('btn-report').textContent = 'Copy report'; }, 1500); })
+      .catch(() => { log('Couldn’t copy; select the log by hand', 'bad'); });
+  });
+  checkNetwork();
 })();
 </script>
 </body>
