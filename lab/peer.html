@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Online play test</title>
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%A1%3C/text%3E%3C/svg%3E">
+<!--
+  A throwaway spike: can two computers find each other through PeerJS's free
+  public server and keep a shared state in sync? One computer hosts and owns
+  the state; the others send it actions and draw what it broadcasts, the same
+  shape When's that tune? would use online. Built into site/lab/ by
+  tools/build-site.js; not linked from the game.
+-->
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg1: #0e0e1c; --bg2: #221037;
+  --card: rgba(255, 255, 255, 0.06); --line: rgba(255, 255, 255, 0.12);
+  --text: #f4f2fb; --muted: #a9a3c2;
+  --accent: #ff2d78; --accent2: #8a5cff;
+  --good: #2fd977; --warn: #ffb454; --bad: #ff5c5c; --gold: #ffe08a;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--text); line-height: 1.45;
+  background: radial-gradient(1200px 800px at 80% -10%, #3b1462 0%, transparent 60%),
+              linear-gradient(160deg, var(--bg1), var(--bg2));
+  background-attachment: fixed; min-height: 100vh;
+  padding: 32px 16px 48px;
+}
+main { max-width: 720px; margin: 0 auto; }
+main > section { display: grid; gap: 16px; }
+h1 { font-size: 1.7rem; }
+h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 10px; }
+p { color: var(--muted); }
+.hidden { display: none !important; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+button {
+  font: inherit; font-weight: 600; color: var(--text); cursor: pointer;
+  background: rgba(255, 255, 255, 0.1); border: 1px solid var(--line);
+  border-radius: 12px; padding: 10px 16px;
+}
+button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.18); }
+button:disabled { opacity: 0.4; cursor: default; }
+button.primary { background: var(--accent); border-color: transparent; }
+button.primary:hover:not(:disabled) { background: #ff4a8c; }
+input {
+  font: inherit; font-size: 1.3rem; font-weight: 700; letter-spacing: 0.25em; text-transform: uppercase;
+  width: 8.5em; padding: 8px 12px; border-radius: 12px; color: var(--text);
+  background: rgba(0, 0, 0, 0.3); border: 1px solid var(--line);
+}
+input:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.or { color: var(--muted); font-size: 0.9rem; }
+.small { font-size: 0.85rem; }
+
+.code { font-size: clamp(2.4rem, 12vw, 3.6rem); font-weight: 800; letter-spacing: 0.18em; color: var(--gold); line-height: 1.1; }
+.link { font-family: ui-monospace, Menlo, monospace; font-size: 0.85rem; color: var(--muted); word-break: break-all; }
+
+.pill { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.pill::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+.pill[data-kind="ok"]::before { background: var(--good); }
+.pill[data-kind="wait"]::before { background: var(--warn); animation: pulse 1.2s infinite; }
+.pill[data-kind="bad"]::before { background: var(--bad); }
+@keyframes pulse { 50% { opacity: 0.3; } }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 12px; }
+.fact { background: rgba(0, 0, 0, 0.2); border-radius: 10px; padding: 8px 12px; }
+.fact b { display: block; font-size: 0.75rem; color: var(--muted); font-weight: 600; }
+
+.peers { list-style: none; display: grid; gap: 6px; margin-top: 12px; }
+.peers:empty { display: none; }
+.peers li { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; background: rgba(0, 0, 0, 0.2); border-radius: 10px; padding: 8px 12px; }
+.peers span { color: var(--muted); font-size: 0.9rem; }
+
+.counter { display: flex; align-items: center; gap: 18px; }
+.counter output { font-size: 2.6rem; font-weight: 800; min-width: 2.5ch; text-align: center; font-variant-numeric: tabular-nums; }
+.counter button { font-size: 1.4rem; width: 56px; height: 56px; padding: 0; }
+.song { margin-top: 12px; font-size: 1.1rem; }
+.song:empty { display: none; }
+.song small { color: var(--muted); }
+.by { margin-top: 8px; font-size: 0.85rem; color: var(--muted); min-height: 1.3em; }
+
+#log {
+  font-family: ui-monospace, Menlo, monospace; font-size: 0.8rem; color: var(--muted);
+  max-height: 220px; overflow: auto; display: grid; gap: 2px;
+}
+#log .bad { color: var(--bad); } #log .ok { color: var(--good); }
+</style>
+</head>
+<body>
+<main>
+
+<section id="screen-start">
+  <div class="card">
+    <h1>📡 Online play test</h1>
+    <p style="margin-top:8px">A connection test for playing When's that tune? on two computers.
+      Open this page on both. One computer hosts and the other joins with the code.
+      Try it from two different networks, for example home Wi‑Fi and a phone hotspot.</p>
+  </div>
+  <div class="card">
+    <h2>Start</h2>
+    <div class="row">
+      <button id="btn-host" class="primary" type="button">Host a game</button>
+      <button id="btn-resume" class="hidden" type="button"></button>
+    </div>
+    <p class="or" style="margin:14px 0 10px">or join one:</p>
+    <form id="join-form" class="row" autocomplete="off">
+      <input id="join-code" maxlength="4" placeholder="CODE" spellcheck="false" autocapitalize="characters" aria-label="Game code">
+      <button id="btn-join" type="submit">Join</button>
+    </form>
+    <p id="join-hint" class="small hidden" style="margin-top:10px">Press <b>Join</b> to connect.</p>
+    <p class="small" style="margin-top:16px">Uses PeerJS's free public server to introduce the computers. Nothing is stored.</p>
+  </div>
+</section>
+
+<section id="screen-room" class="hidden">
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <h2 id="room-role" style="margin:0"></h2>
+      <button id="btn-leave" type="button">Leave</button>
+    </div>
+    <div id="room-code" class="code"></div>
+    <div id="host-share" class="hidden">
+      <p class="link" id="room-link" style="margin:6px 0 10px"></p>
+      <button id="btn-copy" type="button">Copy link</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Connection</h2>
+    <div id="status" class="pill" data-kind="wait">Starting…</div>
+    <div id="guest-facts" class="facts hidden">
+      <div class="fact"><b>Route</b><span id="f-route">…</span></div>
+      <div class="fact"><b>Round trip</b><span id="f-rtt">…</span></div>
+      <div class="fact"><b>Connected in</b><span id="f-took">…</span></div>
+    </div>
+    <ul id="peers" class="peers"></ul>
+  </div>
+
+  <div class="card">
+    <h2>Shared counter</h2>
+    <p class="small" style="margin-bottom:12px">Press from either computer; both should change at once.</p>
+    <div class="counter">
+      <button id="btn-dec" type="button" aria-label="Minus one">−</button>
+      <output id="counter">0</output>
+      <button id="btn-inc" type="button" aria-label="Plus one">+</button>
+    </div>
+    <div id="counter-by" class="by"></div>
+  </div>
+
+  <div class="card">
+    <h2>Music</h2>
+    <p class="small" style="margin-bottom:12px">Either computer can start a song; it plays on both.</p>
+    <div class="row">
+      <button id="btn-play" class="primary" type="button">▶ Play a random song</button>
+      <button id="btn-stop" type="button">■ Stop</button>
+      <button id="btn-unmute" class="hidden" type="button">🔈 Tap to enable sound</button>
+    </div>
+    <div id="song" class="song"></div>
+    <div id="song-by" class="by"></div>
+  </div>
+
+  <div class="card">
+    <h2>Log</h2>
+    <div id="log" aria-live="polite"></div>
+  </div>
+</section>
+
+</main>
+
+<script src="peerjs-1.5.5.min.js"></script>
+<script>
+(() => {
+  'use strict';
+  const PREFIX = 'whens-that-tune-';        // our corner of PeerJS's shared name space
+  const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';   // no 0/O, 1/I/L
+  const PING_MS = 2000;
+  const QUIET_MS = 6000;                    // no word from the other side this long: "not responding"
+  const RETRY_MS = 3000;
+  const STUCK_MS = 15000;                   // introduced, but no direct link this long: blocked
+  const HOST_KEY = 'peer-test-host';
+  const CID_KEY = 'peer-test-cid';
+
+  const $ = id => document.getElementById(id);
+  const now = () => performance.now();
+  const store = {
+    get(k) { try { return sessionStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { sessionStorage.setItem(k, v); } catch {} },
+    del(k) { try { sessionStorage.removeItem(k); } catch {} }
+  };
+
+  let role = null;        // 'host' | 'guest'
+  let code = '';
+  let peer = null;
+  let deck = [];
+  // The host's state is the truth; guests only ever hold the last copy it sent.
+  let state = { counter: 0, counterBy: '', song: null, songBy: '', guests: [] };
+
+  // Host: one entry per guest. Guest: one entry, for the host.
+  const links = new Map();   // key -> { conn, name, rtt, route, heard }
+  const guestNames = new Map();  // host: a guest tab's id -> "Guest n", kept across its reconnects
+  let guestSeq = 0;
+
+  // ---------- log ----------
+  function log(msg, kind) {
+    const t = new Date().toLocaleTimeString([], { hour12: false });
+    const line = document.createElement('div');
+    line.textContent = `${t}  ${msg}`;
+    if (kind) line.className = kind;
+    $('log').prepend(line);
+  }
+  function status(kind, text) {
+    $('status').dataset.kind = kind;
+    $('status').textContent = text;
+  }
+
+  // ---------- codes ----------
+  function newCode() {
+    const n = crypto.getRandomValues(new Uint32Array(4));
+    return [...n].map(x => ALPHABET[x % ALPHABET.length]).join('');
+  }
+  const clean = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+  const joinLink = c => `${location.origin}${location.pathname}#join=${c}`;
+
+  // ---------- audio ----------
+  // One element for the whole page: Safari lets a page play sound only on an
+  // element that has already played from a click.
+  const audio = new Audio();
+  audio.preload = 'auto';
+  function unlockAudio() {
+    if (audio.dataset.unlocked) return;
+    audio.dataset.unlocked = '1';
+    audio.muted = true;
+    audio.play().catch(() => {}).finally(() => { audio.pause(); audio.muted = false; });
+  }
+  function playSong(song) {
+    audio.src = song.previewUrl;
+    audio.currentTime = 0;
+    audio.play().then(() => $('btn-unmute').classList.add('hidden')).catch(() => {
+      $('btn-unmute').classList.remove('hidden');
+      log('The browser blocked sound until you tap the page', 'bad');
+    });
+  }
+  function stopSong() { audio.pause(); }
+
+  // ---------- connection facts ----------
+  // Which way the data really flows: straight between the computers, or
+  // bounced off PeerJS's relay because a network wouldn't allow direct.
+  async function route(conn) {
+    const pc = conn.peerConnection;
+    if (!pc) return null;
+    const stats = await pc.getStats();
+    let pair = null;
+    stats.forEach(s => { if (s.type === 'transport' && s.selectedCandidatePairId) pair = stats.get(s.selectedCandidatePairId); });
+    if (!pair) stats.forEach(s => { if (s.type === 'candidate-pair' && s.nominated && s.state === 'succeeded') pair = s; });
+    if (!pair) return null;
+    const types = [stats.get(pair.localCandidateId), stats.get(pair.remoteCandidateId)].map(c => c && c.candidateType);
+    if (types.includes('relay')) return 'Through the relay server';
+    if (types.every(t => t === 'host')) return 'Direct, same network';
+    return 'Direct over the internet';
+  }
+
+  function heartbeat() {
+    for (const link of links.values()) {
+      if (!link.conn.open) continue;
+      link.conn.send({ type: 'ping', t: Date.now() });
+      route(link.conn).then(r => { if (r && r !== link.route) { if (link.route) log(`${link.name}: route is now "${r}"`); link.route = r; render(); } })
+        .catch(() => {});
+    }
+    render();
+  }
+  setInterval(heartbeat, PING_MS);
+
+  function handleCommon(link, msg) {
+    link.heard = now();
+    if (msg.type === 'ping') { link.conn.send({ type: 'pong', t: msg.t }); return true; }
+    if (msg.type === 'pong') { link.rtt = Date.now() - msg.t; return true; }
+    return false;
+  }
+
+  // ---------- host ----------
+  function host(wanted, tries = 0) {
+    role = 'host';
+    code = wanted || newCode();
+    enterRoom();
+    status('wait', `Claiming code ${code}…`);
+    peer = new Peer(PREFIX + code, { debug: 1 });
+
+    peer.on('open', () => {
+      store.set(HOST_KEY, code);
+      status('wait', 'Waiting for someone to join');
+      log(`Code ${code} is ours. Share the link.`, 'ok');
+      loadDeck();
+    });
+
+    peer.on('connection', conn => {
+      const cid = (conn.metadata && conn.metadata.cid) || conn.peer;
+      if (!guestNames.has(cid)) guestNames.set(cid, `Guest ${++guestSeq}`);
+      const name = guestNames.get(cid);
+      conn.on('open', () => {
+        // A guest that reconnects replaces its old, dead link.
+        for (const [k, l] of links) if (l.cid === cid) { l.conn.close(); links.delete(k); }
+        links.set(conn.peer, { conn, cid, name, rtt: null, route: null, heard: now() });
+        log(`${name} joined`, 'ok');
+        broadcastState();
+        heartbeat();
+      });
+      conn.on('data', msg => {
+        const link = links.get(conn.peer);
+        if (!link || handleCommon(link, msg)) return;
+        if (msg.type === 'act') act(msg.name, name);
+      });
+      conn.on('close', () => {
+        if (links.get(conn.peer)?.conn !== conn) return;
+        links.delete(conn.peer);
+        log(`${name} left`, 'bad');
+        broadcastState();
+      });
+      conn.on('error', e => log(`${name}: ${e.type || e.message}`, 'bad'));
+    });
+
+    peer.on('disconnected', () => {
+      // Lost the switchboard only: games in progress carry on, but nobody new
+      // can join until we're back.
+      log('Lost touch with the PeerJS server; reconnecting…', 'bad');
+      setTimeout(() => { if (peer && !peer.destroyed) peer.reconnect(); }, RETRY_MS);
+    });
+
+    peer.on('error', e => {
+      if (e.type === 'unavailable-id') {
+        peer.destroy();
+        // Our own code, reclaimed after a refresh, can stay taken for a few
+        // seconds while the server notices the old tab is gone.
+        if (wanted && tries < 5) {
+          log(`Code ${code} is still held; trying again…`);
+          setTimeout(() => host(wanted, tries + 1), RETRY_MS);
+        } else {
+          log(`Code ${code} is taken; picking another`);
+          host();
+        }
+        return;
+      }
+      log(`Error: ${e.type || e.message}`, 'bad');
+      if (e.type === 'network' || e.type === 'server-error') status('bad', 'Can’t reach the PeerJS server');
+    });
+  }
+
+  function loadDeck() {
+    if (deck.length) return;
+    fetch('../deck.json').then(r => r.json()).then(d => {
+      deck = d.rounds.filter(r => r.previewUrl);
+      log(`${deck.length} songs ready`);
+      render();
+    }).catch(() => log('Couldn’t load ../deck.json; songs won’t play', 'bad'));
+  }
+
+  function act(name, by) {
+    if (role === 'guest') {
+      const link = [...links.values()][0];
+      if (link && link.conn.open) link.conn.send({ type: 'act', name });
+      return;
+    }
+    if (name === 'inc' || name === 'dec') {
+      state.counter += name === 'inc' ? 1 : -1;
+      state.counterBy = `${by} pressed ${name === 'inc' ? '+' : '−'}`;
+    } else if (name === 'play') {
+      if (!deck.length) return;
+      let song;
+      do song = deck[Math.floor(Math.random() * deck.length)];
+      while (deck.length > 1 && state.song && song.previewUrl === state.song.previewUrl);
+      state.song = { title: song.title, artist: song.artist, year: song.year, previewUrl: song.previewUrl };
+      state.songBy = `${by} started it`;
+      for (const l of links.values()) if (l.conn.open) l.conn.send({ type: 'play', song: state.song });
+      // Start here about when the song reaches the slowest guest.
+      const lag = Math.max(0, ...[...links.values()].map(l => (l.rtt || 0) / 2));
+      setTimeout(() => playSong(state.song), lag);
+    } else if (name === 'stop') {
+      state.song = null;
+      state.songBy = `${by} stopped it`;
+      for (const l of links.values()) if (l.conn.open) l.conn.send({ type: 'stop' });
+      stopSong();
+    }
+    broadcastState();
+  }
+
+  function broadcastState() {
+    state.guests = [...links.values()].map(l => l.name);
+    for (const l of links.values()) if (l.conn.open) l.conn.send({ type: 'state', state });
+    render();
+  }
+
+  // ---------- guest ----------
+  let started = 0, retryTimer = 0, tries = 0;
+
+  function join(wanted) {
+    role = 'guest';
+    code = wanted;
+    enterRoom();
+    status('wait', 'Reaching the PeerJS server…');
+    started = now();
+    peer = new Peer({ debug: 1 });
+    peer.on('open', () => connect());
+    peer.on('disconnected', () => {
+      setTimeout(() => { if (peer && !peer.destroyed) peer.reconnect(); }, RETRY_MS);
+    });
+    peer.on('error', e => {
+      if (e.type === 'peer-unavailable') {
+        status('bad', `No game with code ${code} right now`);
+        log(`No game with code ${code}; retrying…`, 'bad');
+        retry();
+        return;
+      }
+      log(`Error: ${e.type || e.message}`, 'bad');
+      if (e.type === 'network' || e.type === 'server-error') { status('bad', 'Can’t reach the PeerJS server'); retry(); }
+    });
+  }
+
+  function cid() {
+    let id = store.get(CID_KEY);
+    if (!id) { id = crypto.getRandomValues(new Uint32Array(2)).join('-'); store.set(CID_KEY, id); }
+    return id;
+  }
+
+  function connect() {
+    clearTimeout(retryTimer);
+    status('wait', `Connecting to ${code}…`);
+    const conn = peer.connect(PREFIX + code, { reliable: true, serialization: 'json', metadata: { cid: cid() } });
+    const link = { conn, name: 'Host', rtt: null, route: null, heard: now() };
+    // The host answered but no link opened: with PeerJS's relay servers gone
+    // (their names no longer resolve), that means a network blocked direct.
+    const stuck = setTimeout(() => {
+      if (conn.open) return;
+      status('bad', 'Found the game, but couldn’t link up directly');
+      log('No direct link after 15 s: one of the networks blocks it, and there is no relay to fall back on', 'bad');
+    }, STUCK_MS);
+    conn.on('open', () => {
+      clearTimeout(stuck);
+      links.clear();
+      links.set('host', link);
+      tries = 0;
+      const took = ((now() - started) / 1000).toFixed(1);
+      $('f-took').textContent = `${took} s`;
+      log(`Connected to ${code} in ${took} s`, 'ok');
+      heartbeat();
+    });
+    conn.on('data', msg => {
+      if (handleCommon(link, msg)) return;
+      if (msg.type === 'state') { state = msg.state; render(); }
+      else if (msg.type === 'play') playSong(msg.song);
+      else if (msg.type === 'stop') stopSong();
+    });
+    conn.on('close', () => {
+      if (links.get('host') !== link) return;
+      links.delete('host');
+      log('Connection to the host closed', 'bad');
+      stopSong();
+      retry();
+    });
+    conn.on('error', e => log(`Connection: ${e.type || e.message}`, 'bad'));
+  }
+
+  function retry() {
+    clearTimeout(retryTimer);
+    if (++tries > 20) { status('bad', 'Gave up. Check the code and join again.'); return; }
+    started = now();
+    retryTimer = setTimeout(() => {
+      if (peer.disconnected) peer.reconnect();
+      if (peer.open) connect(); else peer.once('open', connect);
+    }, RETRY_MS);
+    render();
+  }
+
+  // ---------- screen ----------
+  function enterRoom() {
+    $('screen-start').classList.add('hidden');
+    $('screen-room').classList.remove('hidden');
+    $('room-code').textContent = code;
+    $('room-role').textContent = role === 'host' ? 'You’re hosting' : 'You joined';
+    $('host-share').classList.toggle('hidden', role !== 'host');
+    $('guest-facts').classList.toggle('hidden', role !== 'guest');
+    $('room-link').textContent = joinLink(code);
+    if (role === 'guest') history.replaceState(null, '', `#join=${code}`);
+    else history.replaceState(null, '', location.pathname);
+    render();
+  }
+
+  const fmtRtt = l => l.rtt == null ? '…' : `${l.rtt} ms`;
+  const quiet = l => now() - l.heard > QUIET_MS;
+
+  function render() {
+    if (!role) return;
+    const live = [...links.values()].filter(l => l.conn.open);
+    if (role === 'host') {
+      if (peer && peer.open) {
+        const n = live.length;
+        if (!n) status('wait', 'Waiting for someone to join');
+        else if (live.some(quiet)) status('bad', 'A guest isn’t responding');
+        else status('ok', `${n} ${n === 1 ? 'computer' : 'computers'} connected`);
+      }
+      $('peers').replaceChildren(...live.map(l => {
+        const li = document.createElement('li');
+        const b = document.createElement('b');
+        b.textContent = l.name;
+        const s = document.createElement('span');
+        s.textContent = [l.route || 'finding route…', fmtRtt(l), quiet(l) ? 'not responding' : ''].filter(Boolean).join(' · ');
+        li.append(b, s);
+        return li;
+      }));
+    } else {
+      const l = links.get('host');
+      if (l && l.conn.open) {
+        status(quiet(l) ? 'bad' : 'ok', quiet(l) ? 'Host isn’t responding' : `Connected to ${code}`);
+        $('f-route').textContent = l.route || '…';
+        $('f-rtt').textContent = fmtRtt(l);
+      }
+      const others = state.guests.length - 1;
+      $('peers').replaceChildren();
+      if (others > 0) {
+        const li = document.createElement('li');
+        li.textContent = `${others} other ${others === 1 ? 'guest' : 'guests'} connected`;
+        $('peers').append(li);
+      }
+    }
+    const canAct = role === 'host' || live.length > 0;
+    $('counter').textContent = state.counter;
+    $('counter-by').textContent = state.counterBy;
+    for (const id of ['btn-inc', 'btn-dec', 'btn-stop']) $(id).disabled = !canAct;
+    $('btn-play').disabled = !canAct || (role === 'host' && !deck.length);
+    $('song').replaceChildren();
+    if (state.song) {
+      $('song').textContent = `♪ ${state.song.title} — ${state.song.artist} `;
+      const y = document.createElement('small');
+      y.textContent = `(${state.song.year})`;
+      $('song').append(y);
+    }
+    $('song-by').textContent = state.songBy;
+  }
+
+  // ---------- wiring ----------
+  const me = () => role === 'host' ? 'Host' : 'You';
+  $('btn-inc').addEventListener('click', () => act('inc', me()));
+  $('btn-dec').addEventListener('click', () => act('dec', me()));
+  $('btn-play').addEventListener('click', () => act('play', me()));
+  $('btn-stop').addEventListener('click', () => act('stop', me()));
+  $('btn-unmute').addEventListener('click', () => {
+    audio.play().then(() => $('btn-unmute').classList.add('hidden')).catch(() => {});
+  });
+  $('btn-host').addEventListener('click', () => { unlockAudio(); host(); });
+  $('btn-resume').addEventListener('click', () => { unlockAudio(); host(store.get(HOST_KEY)); });
+  $('join-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const c = clean($('join-code').value);
+    if (c.length !== 4) { $('join-code').focus(); return; }
+    unlockAudio();
+    join(c);
+  });
+  $('join-code').addEventListener('input', e => { e.target.value = clean(e.target.value); });
+  $('btn-copy').addEventListener('click', () => {
+    navigator.clipboard.writeText(joinLink(code))
+      .then(() => { $('btn-copy').textContent = 'Copied ✓'; setTimeout(() => { $('btn-copy').textContent = 'Copy link'; }, 1500); })
+      .catch(() => { getSelection().selectAllChildren($('room-link')); });
+  });
+  $('btn-leave').addEventListener('click', () => {
+    if (role === 'host') store.del(HOST_KEY);
+    if (peer) peer.destroy();
+    location.href = location.pathname;
+  });
+  // Tell the other side at once, rather than leaving it to notice the silence.
+  addEventListener('pagehide', () => { if (peer) peer.destroy(); });
+
+  // A join link fills in the code; the Join click also unlocks sound.
+  const m = location.hash.match(/join=([A-Za-z0-9]{4})/);
+  if (m) {
+    $('join-code').value = clean(m[1]);
+    $('join-hint').classList.remove('hidden');
+    $('btn-join').classList.add('primary');
+    $('btn-host').classList.remove('primary');
+    $('btn-join').focus();
+  }
+  const saved = store.get(HOST_KEY);
+  if (saved) {
+    $('btn-resume').textContent = `Resume hosting ${saved}`;
+    $('btn-resume').classList.remove('hidden');
+  }
+  if (typeof Peer === 'undefined') log('PeerJS didn’t load', 'bad');
+})();
+</script>
+</body>
+</html>
