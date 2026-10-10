@@ -34,6 +34,17 @@
     return i <= 0 || i >= cards.length || cards[i - 1].year !== cards[i].year;
   }
 
+  // Where gap `slot` sits once a card of `year` joins the timeline
+  // (insertSorted puts it after every card of its year or earlier), or null
+  // when the card lands inside that gap and splits it in two.
+  function slotAfterInsert(cards, slot, year) {
+    const at = cards.filter(c => c.year <= year).length;
+    if (at < slot) return slot + 1;
+    if (at > slot) return slot;
+    // A tie with the card below the gap joins its stack, leaving the gap whole.
+    return slot > 0 && cards[slot - 1].year === year ? slot + 1 : null;
+  }
+
   function slotLabel(cards, i) {
     if (!cards.length) return 'Place it here';
     if (i === 0) return `before ${cards[0].year}`;
@@ -41,5 +52,5 @@
     return `${cards[i - 1].year} – ${cards[i].year}`;
   }
 
-  return { slotIsCorrect, insertSorted, slotIsOpen, slotLabel };
+  return { slotIsCorrect, insertSorted, slotIsOpen, slotAfterInsert, slotLabel };
 });

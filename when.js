@@ -55,7 +55,7 @@
   let lastPrompt = null;
   let bannerTimer = 0;
 
-  const { slotIsCorrect, insertSorted, slotIsOpen, slotLabel } = window.QuizTimeline;
+  const { slotIsCorrect, insertSorted, slotIsOpen, slotAfterInsert, slotLabel } = window.QuizTimeline;
 
   const now = () => performance.now();
   const songKey = r => `${r.title}|${r.artist}`;
@@ -237,7 +237,8 @@
     let qGold = false;
     if (S.blocked) q = 'Tap the record to hear the song first.';
     else if (S.bought) {
-      q = `🎟 Bought “${S.bought.title}” (${S.bought.year}): the gaps moved, pick again`;
+      q = `🎟 Bought “${S.bought.title}” (${S.bought.year})` +
+        (S.boughtSplit && S.selected == null ? ': it landed in your gap, pick again' : '');
       qGold = true;
     }
     if (q !== 'Where does this song belong?') qShort = '';
@@ -1078,6 +1079,7 @@
     S.challenger = null;
     S.challenge = null;
     S.bought = null;
+    S.boughtSplit = false;
     S.bonus = false;
     S.blocked = false;
     S.outcome = null;
@@ -1243,11 +1245,15 @@
       return render();
     }
     const team = S.teams[S.active];
+    // The gaps are about to shift, so a half-made pick moves with them. Only
+    // a card landing inside the chosen gap splits it, and that one is lost.
+    const picked = S.phase === 'placing' ? S.selected : null;
+    const kept = picked == null ? null : slotAfterInsert(team.cards, picked, free.year);
     team.tokens -= BUY_COST;
     S.bought = place(S.active, free, 'bought');
     S.log.push({ type: 'buy', turn: S.turns, team: S.active, card: brief(free) });
-    // The gaps just shifted, so a half-made pick no longer points where it did.
-    if (S.phase === 'placing') S.selected = null;
+    if (S.phase === 'placing') S.selected = kept;
+    S.boughtSplit = picked != null && kept == null;
     // Reaching the target on a buy wins on the spot — nobody gets to tie it
     // with a steal later in the turn (ARC-M1).
     if (team.cards.length >= S.target) return finish('bought');
@@ -1670,6 +1676,7 @@
       challenger: null,  // the rival picking a gap (challenge phase)
       challenge: null,   // { team, slot } once the challenger confirms
       bought: null,      // the card bought this turn, highlighted
+      boughtSplit: false, // that card landed inside the chosen gap, so the pick was dropped
       dealing: false,    // a card is being drawn: skip, buy, Next and lock-in wait
       blocked: false,    // the browser blocked autoplay: the record is a play button until it plays
       bonus: false,      // the name-it token, toggled on the reveal
