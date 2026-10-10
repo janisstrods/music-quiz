@@ -778,23 +778,34 @@
     return marks;
   }
 
+  // Cards the placing team bought this turn carry the board's gold tag here too.
+  const boughtNow = (c, o) => c.how === 'bought' && c.by === o.entry.team && c.turn === o.entry.turn;
+
   // The placing team's line as it was before this song, in pieces: a card,
-  // or a marked gap.
+  // or a marked gap. A card bought on the reveal joins it after the fact, in
+  // the gap its year falls in (beside the song by year, if it landed there).
   function stripUnits(o) {
     const marks = stripMarks(o);
+    const late = S.teams[o.entry.team].cards.filter(c => boughtNow(c, o) && !o.before.includes(c));
     const units = [];
     for (let k = 0; k <= o.before.length; k++) {
-      if (marks.has(k)) units.push({ gap: k, mark: marks.get(k) });
-      if (k < o.before.length) units.push({ i: k, c: o.before[k] });
+      const mark = marks.get(k);
+      const here = late.filter(c => o.before.filter(b => b.year <= c.year).length === k);
+      const early = mark && mark.kind === 'land' ? here.filter(c => c.year < o.entry.card.year) : [];
+      for (const c of early) units.push({ c, bought: true });
+      if (mark) units.push({ gap: k, mark });
+      for (const c of here) if (!early.includes(c)) units.push({ c, bought: true });
+      if (k < o.before.length) units.push({ i: k, c: o.before[k], bought: boughtNow(o.before[k], o) });
     }
     return units;
   }
 
-  // Which pieces to show when they don't all fit across: every mark and the
-  // cards either side of it, then the spare room shared out either side, so
-  // the marks sit in the middle. When marks sit too far apart for that, the
-  // cards between them fold into a "⋯ 4" piece, and neighbours are let go
-  // one by one, farthest from the song first. m: the strip's measures.
+  // Which pieces to show when they don't all fit across: every mark and
+  // bought card and the cards either side of it, then the spare room shared
+  // out either side, so the marks sit in the middle. When marks sit too far
+  // apart for that, the cards between them fold into a "⋯ 4" piece, and
+  // neighbours are let go one by one, farthest from the song first.
+  // m: the strip's measures.
   // → { show: [index | { skip: n }], from, to }
   function stripWindow(units, m) {
     const n = units.length;
@@ -802,8 +813,8 @@
     const width = show => show.reduce((w, k) => w + (typeof k === 'number' ? m.item : m.skip), 0) + m.gap * (show.length - 1);
     const fits = show => width(show) <= m.avail + 0.5;
     if (fits(all)) return { show: all, from: 0, to: n - 1 };
-    const markAt = all.filter(i => units[i].mark);
-    const land = markAt.find(i => units[i].mark.kind === 'land');
+    const markAt = all.filter(i => units[i].mark || units[i].bought);
+    const land = markAt.find(i => units[i].mark?.kind === 'land');
     const near = [...new Set(markAt.flatMap(i => [i - 1, i, i + 1]))].filter(i => i >= 0 && i < n).sort((a, b) => a - b);
     let lo = near[0], hi = near[near.length - 1];
     if (fits(all.slice(lo, hi + 1))) {
@@ -819,7 +830,7 @@
       return cards ? [{ skip: cards }, k] : [k];
     });
     let keep = near;
-    const spare = near.filter(i => !units[i].mark).sort((a, b) => Math.abs(b - land) - Math.abs(a - land));
+    const spare = near.filter(i => !units[i].mark && !units[i].bought).sort((a, b) => Math.abs(b - land) - Math.abs(a - land));
     for (const c of spare) {
       if (fits(fold(keep))) break;
       keep = keep.filter(k => k !== c);
@@ -864,8 +875,10 @@
       const u = units[k];
       if (u.c) {
         // Same-year cards sit together, as on the board.
-        const joined = u.i > 0 && !slotIsOpen(o.before, u.i) && shown.has(k - 1) && units[k - 1].c;
-        return `<div class="rv-item rv-c${joined ? ' sj' : ''}"><img src="${esc(u.c.artworkUrl || '')}" alt=""><b>${u.c.year}</b><span>${esc(u.c.title)}</span></div>`;
+        const joined = shown.has(k - 1) && units[k - 1].c?.year === u.c.year;
+        const tag = u.bought ? '<span class="rv-tag bought">🎟 Bought</span>' : '';
+        return `<div class="rv-item rv-c${u.bought ? ' rv-bought' : ''}${joined ? ' sj' : ''}">${tag}` +
+          `<img src="${esc(u.c.artworkUrl || '')}" alt=""><b>${u.c.year}</b><span>${esc(u.c.title)}</span></div>`;
       }
       const m = u.mark;
       const label = o.before.length ? slotLabel(o.before, u.gap) : 'anywhere';

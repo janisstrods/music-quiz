@@ -257,6 +257,9 @@ body:has(#screen-when.active) .topbar { display: none; }
 }
 .start-credit a { color: var(--accent2); }
 .start-credit a:hover { color: var(--text); }
+/* The release under the credits: its number and its song. */
+.start-version { display: block; margin-top: 0.3em; letter-spacing: 0.02em; }
+.start-version:empty { display: none; }
 
 /* A gentle entrance, one line after another. */
 .start-main > * { animation: start-in 0.6s ease-out both; }

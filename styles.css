@@ -1178,6 +1178,11 @@ body:has(#screen-when.active) .topbar { display: none; }
   background: #4a3d6e; color: #fff;
 }
 .rv-tag.ok { background: var(--good); color: #062812; }
+/* A card bought this turn: gold, as on the board. */
+.rv-bought { border: 2px solid var(--gold); box-shadow: 0 0 0 2px rgba(255, 224, 138, 0.3); }
+.rv-tag.bought { background: var(--gold); color: #2a1a05; }
+/* Two tags side by side: each keeps to its own card and half the gap. */
+.rv-bought + .rv-item > .rv-tag, .rv-item:has(+ .rv-bought) > .rv-tag { max-width: calc(100% + var(--rgap)); }
 /* A losing pick: a red ✗ ghost. Another gap the song fits: a green one. */
 .rv-ghost { justify-content: center; gap: calc(var(--ru) * 4); border: 2px dashed; }
 .rv-ghost b { font-size: max(12px, calc(var(--ru) * 14)); font-weight: 800; line-height: 1.2; color: #fff; overflow-wrap: anywhere; }
