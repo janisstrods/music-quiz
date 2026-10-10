@@ -28,9 +28,10 @@
  * the place of the turn line and the timeline, under the live scoreboard:
  * the song, the outcome, and where the card belonged in the placing team's
  * line. The results rank the teams, tell the story of the game from S.log
- * (steals, the longest run, the winning card) and show every card of every
- * timeline. Quit asks first, with the standings, and so does the browser's
- * Back button: a game keeps a history entry of its own.
+ * (steals, the longest run, the winning card), show every card of every
+ * timeline, and list the songs teams skipped, to hear now. Quit asks first,
+ * with the standings, and so does the browser's Back button: a game keeps a
+ * history entry of its own.
  *
  *   MQ.when.start({ teamNames: ['A','B','C'], target: 20 })
  *   MQ.when.snapshot()   // read-only JSON copy of the game, for tests and the console
@@ -1232,7 +1233,9 @@
     if (!canSkip()) return;
     const team = S.teams[S.active];
     team.tokens--;
-    S.log.push({ type: 'skip', turn: S.turns, team: S.active, card: brief(card) });
+    // The results offer skipped songs to hear again, so a skip keeps what plays it.
+    const { previewUrl, artworkUrl, trackId } = card;
+    S.log.push({ type: 'skip', turn: S.turns, team: S.active, card: { ...brief(card), previewUrl, artworkUrl, trackId } });
     MQ.audio.stop();
     toast(`${team.name} skipped — 🎟 1 spent. Here's a new song.`);
     // Skipping swaps the song, not the turn — the same team plays the new card.
@@ -1511,6 +1514,73 @@
       </div>`;
   }
 
+  // Under the timelines: every song a team paid to skip, in the order they
+  // went, to hear now the game is over. The years can show: the deck counts
+  // skipped songs as heard, so a rematch never deals them again.
+  function skippedHTML(e, k) {
+    const c = e.card;
+    const am = MQ.audio.appleMusicUrl(c);
+    return `<li class="sk-row t${e.team}">
+        <button class="sk-play" type="button" data-k="${k}" aria-label="${esc(`Play “${c.title}” by ${c.artist}`)}"><span aria-hidden="true">▶</span></button>
+        <img src="${esc(c.artworkUrl || '')}" alt="">
+        <span class="sk-text"><b class="sk-title">${esc(c.title)}</b><span class="sk-sub">${esc(c.artist)} · <b>${c.year}</b></span>
+          <span class="sk-by">skipped by <i>${esc(S.teams[e.team].name)}</i></span></span>
+        ${am ? `<a class="am-link sk-am" href="${esc(am)}" target="_blank" rel="noopener">Apple Music ↗</a>` : ''}
+        <i class="sk-bar" aria-hidden="true"></i>
+      </li>`;
+  }
+
+  // One plays at a time. Its button turns into a stop button, and a bar
+  // fills along its row as the clip runs.
+  let skipOn = -1;     // the row playing, or -1
+  let skipFrame = 0;
+
+  function markSkipped() {
+    $('hit-skipped-list').querySelectorAll('.sk-row').forEach((row, k) => {
+      const on = k === skipOn;
+      const c = S.result.skipped[k].card;
+      const b = row.querySelector('.sk-play');
+      row.classList.toggle('playing', on);
+      if (!on) row.style.setProperty('--sk-p', '0');
+      b.firstChild.textContent = on ? '■' : '▶';
+      b.setAttribute('aria-label', `${on ? 'Stop' : 'Play'} “${c.title}” by ${c.artist}`);
+    });
+  }
+
+  function tickSkipped() {
+    skipFrame = 0;
+    if (skipOn < 0) return;
+    const p = MQ.audio.progress();
+    if (p.ended) return stopSkipped();
+    const frac = p.duration ? Math.min(1, p.current / p.duration) : 0;
+    $('hit-skipped-list').children[skipOn].style.setProperty('--sk-p', String(frac));
+    skipFrame = requestAnimationFrame(tickSkipped);
+  }
+
+  function stopSkipped() {
+    cancelAnimationFrame(skipFrame);
+    skipFrame = 0;
+    if (skipOn < 0) return;
+    skipOn = -1;
+    MQ.audio.stop();
+    markSkipped();
+  }
+
+  async function playSkipped(k) {
+    const again = k === skipOn;
+    stopSkipped();
+    if (again) return;   // pressing the song that's playing stops it
+    skipOn = k;
+    markSkipped();
+    const status = await MQ.audio.play(S.result.skipped[k].card);
+    if (skipOn !== k || status === 'stale') return;
+    if (status === 'blocked') {
+      stopSkipped();
+      return toast('That preview failed to load.');
+    }
+    skipFrame = requestAnimationFrame(tickSkipped);
+  }
+
   function finish(reason) {
     if (!S || S.phase === 'over') return;
     MQ.audio.stop();
@@ -1531,7 +1601,8 @@
     const best = S.teams[leaders[0]].cards.length;
     const winner = at >= 0 ? at : null;
     const head = headline(reason, winner, leaders, best);
-    S.result = { reason, headline: head.text, leaders, best, winner, ranked, story: story() };
+    S.result = { reason, headline: head.text, leaders, best, winner, ranked, story: story(),
+      skipped: S.log.filter(e => e.type === 'skip') };
     const margin = marginHTML(ranked, best);
     S.result.margin = margin.replace(/<[^>]+>/g, '');
     // The winning card is the last one to join the winner's line.
@@ -1547,6 +1618,11 @@
     // The team that came last starts, with songs nobody has heard yet (ARC-12).
     $('btn-hit-again').innerHTML = `<span class="rm-main">Rematch ▸</span> <span class="rm-sub">fresh songs · first up: ${esc(S.teams[rematchFirst()].name)}</span>`;
     $('hit-final').innerHTML = ranked.map(r => finalTeamHTML(r, winner, winCard)).join('');
+    const skipped = S.result.skipped;
+    skipOn = -1;
+    $('hit-skipped').classList.toggle('hidden', !skipped.length);
+    $('hit-skipped-cap').textContent = `${plural(skipped.length, 'skipped song')} · hear what you missed`;
+    $('hit-skipped-list').innerHTML = skipped.map(skippedHTML).join('');
     show('screen-when-results');
     window.scrollTo(0, 0);
     // Nothing is focused on the results, so a held key can't start a rematch.
@@ -1711,6 +1787,7 @@
   }
 
   function stop() {
+    stopSkipped();
     MQ.audio.stop();
     S = null;
     card = null;
@@ -1831,7 +1908,12 @@
   $('btn-hit-home').addEventListener('click', e => { if (e.detail <= 1) exit(); });
   $('btn-hit-again').addEventListener('click', e => {
     if (!S || S.phase !== 'over' || e.detail > 1) return;
+    stopSkipped();   // a rematch can wait on the network: don't play over "Shuffling"
     start({ teamNames: S.teams.map(t => t.name), target: S.target, deck: S.deck, used: S.used, first: rematchFirst(), onExit });
+  });
+  $('hit-skipped-list').addEventListener('click', e => {
+    const b = e.target.closest('.sk-play');
+    if (b && S && S.phase === 'over' && e.detail <= 1) playSkipped(parseInt(b.dataset.k, 10));
   });
   $('hit-volume').addEventListener('input', e => MQ.audio.setVolume(e.target.value / 100));
 
@@ -1931,6 +2013,10 @@
   // song for the same team. Once a pick is locked in, the turn stands — a
   // failed replay must not hand out a free do-over (ACCESS-13).
   MQ.audio.onError(() => {
+    if (skipOn >= 0) {   // a skipped song on the results
+      stopSkipped();
+      return toast('That preview failed to load.');
+    }
     if (!S || S.dealing || S.phase === 'over' || S.phase === 'handoff' || !$('screen-when').classList.contains('active')) return;
     if (S.phase === 'placing' && S.placement == null) {
       toast('That preview failed to load — dealing another song.');

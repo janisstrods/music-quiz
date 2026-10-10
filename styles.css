@@ -1643,6 +1643,43 @@ body:has(#screen-when-results.active) .topbar {
 .fin-card.stolen:not(.win) .fin-tag { background: #2a1537; color: var(--gold); border: 1.5px solid var(--gold); }
 .fin-none { color: var(--muted); font-size: clamp(14px, 0.3vw + 10px, 20px); }
 
+/* The skipped songs, to hear again: a row each, side by side when there's
+   room. A bar fills along the bottom of the one playing. */
+.sk-list {
+  list-style: none; display: grid; gap: clamp(8px, 0.9vw, 16px);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(320px, 16vw + 160px, 560px)), 1fr));
+}
+.sk-row {
+  --tc: var(--team-0); --sk-p: 0;
+  position: relative; overflow: hidden; min-width: 0;
+  display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: "play art text am";
+  align-items: center; gap: 4px clamp(10px, 0.9vw, 18px);
+  padding: clamp(8px, 0.8vw, 14px) clamp(12px, 1vw, 20px);
+  border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 16px; background: rgba(255, 255, 255, 0.05);
+}
+.sk-row.t1 { --tc: var(--team-1); }
+.sk-row.t2 { --tc: var(--team-2); }
+.sk-row.playing { border-color: var(--accent2); background: rgba(138, 92, 255, 0.12); }
+.sk-play {
+  grid-area: play; width: clamp(44px, 1.6vw + 26px, 64px); aspect-ratio: 1; border-radius: 50%;
+  display: grid; place-items: center; border: 0; cursor: pointer;
+  background: var(--accent); color: #fff; font-size: clamp(16px, 0.6vw + 9px, 26px);
+}
+.sk-play:hover { filter: brightness(1.15); }
+.sk-row.playing .sk-play { background: var(--accent2); }
+.sk-row img { grid-area: art; width: clamp(44px, 1.6vw + 26px, 64px); aspect-ratio: 1; border-radius: 8px; object-fit: cover; background: #111; }
+.sk-text { grid-area: text; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.sk-title, .sk-sub, .sk-by { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sk-title { font-size: clamp(15px, 0.45vw + 9.5px, 24px); font-weight: 800; }
+.sk-sub, .sk-by { font-size: clamp(13px, 0.3vw + 9.5px, 19px); color: var(--muted); }
+.sk-sub b { color: var(--gold); font-variant-numeric: tabular-nums; }
+.sk-by i { font-style: normal; font-weight: 700; color: var(--tc); }
+.sk-am { grid-area: am; margin: 0; white-space: nowrap; font-size: clamp(12px, 0.25vw + 9px, 17px); }
+.sk-bar {
+  position: absolute; left: 0; bottom: 0; width: 100%; height: 3px;
+  background: var(--accent2); transform-origin: left; transform: scaleX(var(--sk-p));
+}
+
 /* Phones (M5-390): one column, standings without bars, full-width buttons,
    then the story; cards are year and title, three across. */
 @media (max-width: 600px) {
@@ -1665,6 +1702,10 @@ body:has(#screen-when-results.active) .topbar {
   /* (raised a little more: the card's padding is thin here) */
   .fin-tag { font-size: 9px; letter-spacing: 0.02em; padding: 1px 6px; transform: translate(-50%, -72%); }
   .fin-how { display: none; }
+  /* Skipped songs: no art, the Apple Music link under the words. */
+  .sk-row { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "play text" "play am"; }
+  .sk-row img { display: none; }
+  .sk-am { justify-self: start; }
   .quit-buttons { flex-direction: column; }
   .quit-buttons button { width: 100%; justify-content: center; }
 }

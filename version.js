@@ -9,8 +9,9 @@
   // and rules screens · 2.1 the deck grew to 625 songs · 2.1.1 "Should I Stay
   // or Should I Go": a chosen gap stays chosen when a card is bought, unless
   // the card lands inside it · 2.1.2 the reveal shows cards bought that turn,
-  // tagged in gold as on the board.
-  MQ.version = { number: '2.1.2', name: 'Golden', artist: 'HUNTR/X' };
+  // tagged in gold as on the board · 2.2 "The One That Got Away": the results
+  // list the skipped songs, to hear now.
+  MQ.version = { number: '2.2', name: 'The One That Got Away', artist: 'Katy Perry' };
 
   const { number, name, artist } = MQ.version;
   document.querySelectorAll('.app-version').forEach(el => {
